@@ -2,6 +2,6 @@ pre-commit:
   parallel: true
   commands:
     lint:
-      run: bunx biome check .
+      run: bun run lint
     typecheck:
       run: bun run typecheck

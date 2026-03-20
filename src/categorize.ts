@@ -19,7 +19,6 @@ function daysAgo(dateStr: string): number {
 }
 
 export function categorize(
-	_user: string,
 	reviewedPRs: PRWithReviews[],
 	requestedPRs: PRBasic[],
 	authoredPRs: PRBasic[],

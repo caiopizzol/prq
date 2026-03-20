@@ -34,7 +34,6 @@ export async function statusCommand(
 
 	// Phase 3: Categorize
 	const prs = categorize(
-		user,
 		reviewedPRs,
 		requestedPRs,
 		authoredPRs,
