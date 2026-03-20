@@ -1,0 +1,222 @@
+---
+brand: PRQ
+tagline: Your review queue, at a glance.
+version: 1.0
+generated: manual
+language: en
+---
+
+# Brand Platform
+
+## Market Thesis
+
+Code review is the bottleneck of modern software development. AI agents write code faster than ever, but the process that validates that code — review — hasn't kept up. GitHub's notification system buries signal in noise. PRs fall off the radar when authors forget to re-request review. Stale PRs sit for days without anyone noticing.
+
+PRQ exists because the review queue should be as clear as `git status`. One command. No dashboard. No context switch.
+
+### The problem
+
+Developers lose track of what needs their attention. GitHub emails are noisy. The "awaiting your review" filter misses PRs where comments were addressed but review wasn't re-requested. Stale PRs go unnoticed. The result: slower shipping, frustrated teammates, and dropped work.
+
+### Our answer
+
+A CLI tool that tells you exactly what needs attention right now — categorized, prioritized, zero setup. It works where developers already are: the terminal.
+
+### Territory
+
+PRQ operates at the intersection of developer tooling and workflow automation. We are a terminal-first tool for developers who value focus over features, and clarity over dashboards.
+
+---
+
+## Purpose
+
+### Why we exist
+
+To give developers a clear, instant answer to "what needs my attention?" — starting with code review.
+
+### Vision
+
+Every developer has a real-time attention layer across their tools — PRs, issues, tickets — without leaving the terminal.
+
+### Mission
+
+Build the simplest, fastest way to see what code reviews need your attention.
+
+### Promise
+
+You will never miss a PR that needs your review again.
+
+### Personality
+
+- **Direct** — says what matters, nothing more
+- **Technical** — speaks developer, not marketer
+- **Calm** — no urgency theater, just clarity
+- **Opinionated** — terminal over dashboard, simplicity over features
+
+---
+
+## Culture
+
+### Principles
+
+1. **Terminal first.** If it can be a CLI, it should be a CLI. Developers shouldn't leave their flow to check a dashboard.
+
+2. **Zero config by default.** PRQ works the moment you install it. Config exists for power users, not as a requirement.
+
+3. **Show, don't tell.** The output speaks for itself. No marketing language in the tool — just clear, useful information.
+
+4. **Small and sharp.** We'd rather do one thing perfectly than ten things adequately. PRQ is a scalpel, not a Swiss Army knife.
+
+5. **Open by default.** Open source, MIT licensed. The best developer tools earn trust by being inspectable.
+
+---
+
+## Philosophy
+
+### Concept
+
+Less noise, more signal.
+
+### Pillars
+
+- **Clarity over completeness** — Show what matters now, not everything that exists.
+- **Speed over ceremony** — One command, instant answer. No login, no setup wizard, no onboarding flow.
+- **Composability over features** — JSON output, simple config files, works with pipes and scripts. Let developers build on top.
+
+---
+
+## Manifesto
+
+You check your email. Twelve GitHub notifications. Three are reviews. One is a bot. The rest are threads you were tagged in a week ago.
+
+You open the PR tab. Filter by "awaiting your review." Two results. But you know there are more — Alice pushed fixes to that PR you reviewed on Monday. She just forgot to re-request.
+
+So you scroll. You click. You cross-reference. You build a mental model of what actually needs you.
+
+This is broken.
+
+Your review queue should be one command away. Not buried in a web UI. Not drowned in email. Not dependent on someone else remembering to click a button.
+
+`prq` — and you know exactly where you stand.
+
+**Your review queue, at a glance.**
+
+---
+
+## Voice
+
+### Essence
+
+Developer-to-developer. Clear, technical, no fluff.
+
+### We say / We never say
+
+| We say | We never say |
+|---|---|
+| "See what needs your attention" | "Supercharge your review workflow" |
+| "One command" | "Seamless integration" |
+| "PRs waiting on you" | "Streamline your development pipeline" |
+| "No setup needed" | "Get started in minutes" |
+| "Terminal-first" | "Beautiful dashboard" |
+| "Open source" | "Enterprise-grade solution" |
+
+### Tone attributes
+
+- **Concise** — Every word earns its place. README sections are short. CLI output is scannable.
+- **Honest** — We say what the tool does and doesn't do. No roadmap promises disguised as features.
+- **Dry** — Light humor is fine. Marketing enthusiasm is not. We'd rather be understated than oversold.
+- **Helpful** — The goal is always to help someone get unblocked. Not to impress them.
+
+### Platform bios
+
+**GitHub:** PR Queue — CLI to see what code reviews need your attention.
+
+**npm:** See what code reviews need your attention. One command. No dashboard.
+
+**Twitter/X:** prq — your review queue, at a glance. `npm i -g prq-cli`
+
+### Ready-to-use lines
+
+- "Your review queue, at a glance."
+- "One command. No dashboard."
+- "Never miss a review again."
+- "Code review, minus the noise."
+- "What needs your attention, right now."
+
+---
+
+## Visual Direction
+
+### Logo
+
+- **Logotype:** `prq.` in JetBrains Mono 800 weight, lowercase
+- **The dot** is the brand mark — always rendered in accent purple (`#A78BFA`)
+- **Favicon:** `p.` with purple dot, on dark surface background
+- No icon, no mascot, no abstract shapes. The name is the logo.
+- On light backgrounds, text is `#0A0A0C` and dot is `#7C3AED`
+
+### Colors
+
+- **Background:** `#0A0A0C` (near-black) — page background
+- **Surface:** `#111115` (dark surface) — cards, terminal, elevated elements
+- **Border:** `#1E1E24` — dividers, card borders
+- **Accent:** `#A78BFA` (soft purple) — the dot, links, interactive elements, highlights
+- **Text:** `#FAFAFA` (white) — primary text
+- **Muted:** `#6E6E7A` — secondary text, details, separators
+- **Success:** `#4ADE80` (green) — requested reviews, install commands
+- **Warning:** `#FACC15` (yellow) — needs re-review
+- **Danger:** `#FB7185` (pink-red) — stale PRs
+
+### Typography
+
+- **Display:** JetBrains Mono 800 — hero headlines, logo
+- **Heading:** JetBrains Mono 600 — section headings, feature titles
+- **Body:** Inter 400/500 — paragraphs, descriptions
+- **Code:** JetBrains Mono 400 — CLI examples, install commands, terminal output
+- **Caption:** JetBrains Mono 400 uppercase with letter-spacing — section labels
+- **Scale:** 11 / 13 / 15 / 20 / 32 / 72
+
+### Aesthetic
+
+- Centered, typographic layout. Generous whitespace.
+- Dark background. Monospace is the hero typeface.
+- Sections separated by thin horizontal rules (`1px solid #1E1E24`).
+- Minimal color — purple accent used sparingly, category colors for semantic meaning only.
+- Terminal window mockup is the primary visual asset.
+- Version badge as pill: `border: 1px solid #1E1E24; border-radius: 100px; color: accent`
+- Buttons: primary is white text on dark, ghost is muted text with hover to white.
+
+### Never
+
+- Bright backgrounds
+- Rounded, playful UI elements
+- Emoji in branding
+- Stock photography
+- Gradient buttons or colorful CTAs
+- GitHub blue (`#58A6FF`) — we use purple instead
+
+---
+
+## Toolkit
+
+### README as marketing
+
+The GitHub README is the primary marketing surface. It should:
+1. Open with a one-liner and badge
+2. Show a real CLI output screenshot
+3. Install command within 10 seconds of scrolling
+4. Keep it under 2 minutes of reading
+
+### Social content patterns
+
+- **Release posts:** "prq 0.2.0 — [one feature in plain words]. `npm update -g prq-cli`"
+- **Problem posts:** Describe a developer frustration → "that's why we built prq"
+- **Demo posts:** Terminal screenshot or asciinema recording. No explanation needed.
+
+### Landing page structure (future)
+
+1. Hero: tagline + install command + CLI screenshot
+2. Problem: "You're missing PRs" (3 pain points)
+3. Solution: the 4 categories with real output
+4. Install: one command, copy-paste
+5. Footer: GitHub link, npm link, MIT license

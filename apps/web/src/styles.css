@@ -1,0 +1,289 @@
+*,
+*::before,
+*::after {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+:root {
+	--bg: #0c0b0a;
+	--surface: #141312;
+	--border: #201f1d;
+	--text: #e0ddd8;
+	--mid: #908c86;
+	--dim: #5c5955;
+	--faint: #2e2d2a;
+	--mono: "JetBrains Mono", monospace;
+	--sans: "Inter", system-ui, sans-serif;
+	--sym-y: #d4c078;
+	--sym-g: #78c490;
+	--sym-r: #c47878;
+}
+
+html {
+	scroll-behavior: smooth;
+}
+
+body {
+	background: var(--bg);
+	color: var(--text);
+	font-family: var(--sans);
+	-webkit-font-smoothing: antialiased;
+	overflow-x: hidden;
+}
+
+::selection {
+	background: #e0ddd822;
+}
+
+.page {
+	max-width: 600px;
+	margin: 0 auto;
+	padding: 0 32px;
+}
+
+hr {
+	border: none;
+	border-top: 1px solid var(--border);
+	margin: 0;
+}
+
+/* ── Hero ── */
+.hero {
+	padding: 180px 0 48px;
+}
+
+.hero-logo {
+	font-family: var(--mono);
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--mid);
+	letter-spacing: -0.5px;
+	margin-bottom: 64px;
+}
+
+.hero-logo span {
+	color: var(--text);
+}
+
+/* ── Problem ── */
+.problem {
+	padding: 0 0 100px;
+}
+
+.problem p {
+	font-family: var(--mono);
+	font-size: 16px;
+	font-weight: 400;
+	line-height: 2.1;
+	color: var(--dim);
+	margin-bottom: 24px;
+}
+
+.problem p:last-child {
+	margin-bottom: 0;
+}
+.problem em {
+	font-style: normal;
+	color: var(--text);
+	font-weight: 500;
+}
+
+/* ── Pivot ── */
+.pivot {
+	padding: 80px 0;
+	text-align: center;
+}
+
+.pivot-text {
+	font-family: var(--mono);
+	font-size: 22px;
+	font-weight: 600;
+	color: var(--text);
+	letter-spacing: -0.5px;
+}
+
+/* ── Scroll-locked Terminal ── */
+.terminal-scroll-container {
+	height: 250vh;
+	position: relative;
+}
+
+.terminal-sticky {
+	position: sticky;
+	top: 0;
+	height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 32px;
+}
+
+.terminal-wrapper {
+	width: 100%;
+	max-width: 600px;
+}
+
+.terminal {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	overflow: hidden;
+}
+
+.terminal-chrome {
+	height: 40px;
+	border-bottom: 1px solid var(--border);
+	display: flex;
+	align-items: center;
+	padding: 0 16px;
+	gap: 7px;
+}
+
+.terminal-circle {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: var(--faint);
+}
+
+.terminal-body {
+	padding: 24px;
+	font-family: var(--mono);
+	font-size: 13.5px;
+	line-height: 2;
+	color: var(--mid);
+	min-height: 380px;
+}
+
+.t-white {
+	color: var(--text);
+	font-weight: 600;
+}
+.t-bright {
+	color: var(--mid);
+}
+.t-dim {
+	color: var(--dim);
+}
+
+/* Lines hidden by default, revealed by scroll */
+.line {
+	opacity: 0;
+	transform: translateY(4px);
+	transition:
+		opacity 0.2s ease,
+		transform 0.2s ease;
+}
+
+.line.visible {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.cursor {
+	display: inline-block;
+	width: 8px;
+	height: 16px;
+	background: var(--text);
+	vertical-align: text-bottom;
+	animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0;
+	}
+}
+
+.typing-text {
+	display: inline;
+}
+
+/* ── CTA ── */
+.cta {
+	padding: 100px 0;
+	text-align: center;
+}
+
+.cta-heading {
+	font-family: var(--mono);
+	font-size: 16px;
+	font-weight: 500;
+	color: var(--mid);
+	margin-bottom: 40px;
+}
+
+.cta-install {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font-family: var(--mono);
+	font-size: 15px;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 18px 20px;
+	cursor: pointer;
+	transition: border-color 0.2s;
+}
+
+.cta-install:hover {
+	border-color: var(--faint);
+}
+.cta-install .prompt {
+	color: var(--dim);
+}
+.cta-install .cmd {
+	color: var(--sym-g);
+}
+
+.cta-install .copy-btn {
+	font-family: var(--mono);
+	font-size: 11px;
+	color: var(--dim);
+	background: none;
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 4px 10px;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.cta-install .copy-btn:hover {
+	color: var(--mid);
+	border-color: var(--faint);
+}
+.cta-install .copy-btn.copied {
+	color: var(--sym-g);
+	border-color: var(--sym-g);
+}
+
+/* ── Footer ── */
+footer {
+	padding: 48px 0 80px;
+	border-top: 1px solid var(--border);
+	font-family: var(--mono);
+	font-size: 14px;
+	color: var(--dim);
+	display: flex;
+	justify-content: space-between;
+}
+
+footer a {
+	color: var(--dim);
+	text-decoration: none;
+	transition: color 0.2s;
+}
+footer a:hover {
+	color: var(--mid);
+}
+.footer-links {
+	display: flex;
+	gap: 20px;
+}

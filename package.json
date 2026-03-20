@@ -1,27 +1,18 @@
 {
-	"name": "prq-cli",
-	"version": "0.1.4",
-	"description": "PR Queue — see what code reviews need your attention",
-	"type": "module",
-	"bin": {
-		"prq": "./dist/bin/prq.js"
-	},
-	"files": [
-		"dist"
+	"name": "prq",
+	"private": true,
+	"workspaces": [
+		"apps/*"
 	],
 	"scripts": {
-		"build": "bun build src/bin/prq.ts --outdir dist/bin --target node",
-		"dev": "bun run src/bin/prq.ts",
-		"typecheck": "tsc --noEmit",
-		"test": "bun test",
+		"dev": "bun run --filter '*' dev",
+		"dev:cli": "bun run --filter prq-cli dev",
+		"dev:web": "bun run --filter prq-web dev",
+		"build": "bun run --filter '*' build",
+		"typecheck": "bun run --filter '*' typecheck",
+		"test": "bun run --filter '*' test",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write ."
-	},
-	"dependencies": {
-		"@octokit/rest": "^21.1.1",
-		"commander": "^13.1.0",
-		"chalk": "^5.4.1",
-		"zod": "^3.24.4"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.8",
@@ -33,22 +24,5 @@
 		"bun-types": "^1.3.11",
 		"semantic-release": "^25.0.3",
 		"typescript": "^5.7.0"
-	},
-	"engines": {
-		"node": ">=20"
-	},
-	"keywords": [
-		"github",
-		"pull-request",
-		"code-review",
-		"cli",
-		"developer-tools"
-	],
-	"license": "MIT",
-	"author": "Caio Pizzol",
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/caiopizzol/prq.git"
-	},
-	"homepage": "https://github.com/caiopizzol/prq"
+	}
 }

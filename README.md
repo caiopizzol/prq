@@ -67,14 +67,26 @@ Example `.prqrc.json`:
 }
 ```
 
+## Project Structure
+
+```
+prq/
+├── apps/
+│   ├── cli/     # CLI tool (published to npm as prq-cli)
+│   └── web/     # Landing page (prq.sh)
+├── brand/       # Design assets and mockups
+└── .brand       # Brand strategy file
+```
+
 ## Development
 
 ```bash
-bun install
-bun run dev              # run the CLI
+bun install              # install all workspace deps
+bun run dev:cli          # run the CLI
+bun run dev:web          # run the landing page on :3005
 bun test                 # run tests
-bun run lint             # check lint + formatting
-bun run typecheck        # type check
+bun run lint             # lint + formatting
+bun run typecheck        # type check all apps
 ```
 
 ## License

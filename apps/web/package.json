@@ -1,0 +1,9 @@
+{
+	"name": "prq-web",
+	"private": true,
+	"scripts": {
+		"dev": "bun --hot src/server.ts",
+		"build": "bun build src/index.html --outdir dist",
+		"typecheck": "tsc --noEmit"
+	}
+}

@@ -1,0 +1,41 @@
+{
+	"name": "prq-cli",
+	"version": "0.0.0",
+	"description": "PR Queue — see what code reviews need your attention",
+	"type": "module",
+	"bin": {
+		"prq": "./dist/bin/prq.js"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"dev": "bun run src/bin/prq.ts",
+		"build": "bun build src/bin/prq.ts --outdir dist/bin --target node",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"@octokit/rest": "^21.1.1",
+		"commander": "^13.1.0",
+		"chalk": "^5.4.1",
+		"zod": "^3.24.4"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"keywords": [
+		"github",
+		"pull-request",
+		"code-review",
+		"cli",
+		"developer-tools"
+	],
+	"license": "MIT",
+	"author": "Caio Pizzol",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/caiopizzol/prq.git"
+	},
+	"homepage": "https://github.com/caiopizzol/prq"
+}

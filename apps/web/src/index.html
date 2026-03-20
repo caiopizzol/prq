@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>prq. — your review queue, at a glance</title>
+<meta name="description" content="See what code reviews need your attention. One command. No dashboard.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+<div class="page">
+  <section class="hero"><div class="hero-logo">prq<span>.</span></div></section>
+
+  <section class="problem">
+    <p>You check your email. Twelve GitHub notifications. Three are reviews. One is a bot.</p>
+    <p>You open the PR tab. Filter by "awaiting your review." Two results.</p>
+    <p><em>But you know there are more.</em></p>
+    <p>Alice pushed fixes to that PR you reviewed on Monday. She just forgot to re-request. So you scroll. You click. You cross-reference.</p>
+    <p><em>This is broken.</em></p>
+  </section>
+
+  <hr>
+  <section class="pivot"><div class="pivot-text">prq. fixes that.</div></section>
+  <hr>
+</div>
+
+<div class="terminal-scroll-container" id="scrollContainer">
+  <div class="terminal-sticky">
+    <div class="terminal-wrapper">
+      <div class="terminal">
+        <div class="terminal-chrome"><div class="terminal-circle"></div><div class="terminal-circle"></div><div class="terminal-circle"></div></div>
+        <div class="terminal-body" id="term">
+          <div class="line" data-step="0"><span class="t-dim">$ </span><span class="typing-text" id="typed"></span><span class="cursor" id="cursor"></span></div>
+          <div class="line" data-step="1"><br></div>
+          <div class="line" data-step="2"><span class="t-white">PRQ Status for caio-pizzol</span></div>
+          <div class="line" data-step="3"><span class="t-dim">──────────────────────────────────────────</span></div>
+          <div class="line" data-step="4"><br></div>
+          <div class="line" data-step="5"><span style="color: var(--sym-y);">◆</span><span class="t-bright"> Needs Re-review (2)</span></div>
+          <div class="line" data-step="6">&nbsp;&nbsp;superdoc#2352&nbsp;&nbsp;fix: arrow key nav</div>
+          <div class="line" data-step="7"><span class="t-dim">&nbsp;&nbsp;&nbsp;&nbsp;↳ new commits since your review 2d ago</span></div>
+          <div class="line" data-step="8">&nbsp;&nbsp;superdoc#2088&nbsp;&nbsp;feat: col separators</div>
+          <div class="line" data-step="9"><span class="t-dim">&nbsp;&nbsp;&nbsp;&nbsp;↳ new commits since your review 5d ago</span></div>
+          <div class="line" data-step="10"><br></div>
+          <div class="line" data-step="11"><span style="color: var(--sym-g);">●</span><span class="t-bright"> Requested (1)</span></div>
+          <div class="line" data-step="12">&nbsp;&nbsp;superdoc#2490&nbsp;&nbsp;chore: bump deps</div>
+          <div class="line" data-step="13"><span class="t-dim">&nbsp;&nbsp;&nbsp;&nbsp;↳ requested 1d ago</span></div>
+          <div class="line" data-step="14"><br></div>
+          <div class="line" data-step="15"><span style="color: var(--sym-r);">○</span><span class="t-bright"> Stale (1)</span></div>
+          <div class="line" data-step="16">&nbsp;&nbsp;superdoc#1808&nbsp;&nbsp;feat: doc protection</div>
+          <div class="line" data-step="17"><span class="t-dim">&nbsp;&nbsp;&nbsp;&nbsp;↳ no activity for 30 days</span></div>
+          <div class="line" data-step="18"><br></div>
+          <div class="line" data-step="19"><span class="t-dim">──────────────────────────────────────────</span></div>
+          <div class="line" data-step="20"><span class="t-dim">4 PRs · 1 repo</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <section class="cta">
+    <div class="cta-heading">Get started in one command.</div>
+    <div class="cta-install" onclick="copyInstall(this, 'npm i -g prq-cli')">
+      <div><span class="prompt">$ </span><span class="cmd">npm i -g prq-cli</span></div>
+      <button type="button" class="copy-btn">copy</button>
+    </div>
+  </section>
+
+  <footer>
+    <div>open source · MIT</div>
+    <div class="footer-links">
+      <a href="https://github.com/caiopizzol/prq">github</a>
+      <a href="https://www.npmjs.com/package/prq-cli">npm</a>
+    </div>
+  </footer>
+</div>
+
+<script src="./terminal.js" type="module"></script>
+</body>
+</html>
