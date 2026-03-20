@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
+import { nudgeCommand } from "./commands/nudge.js";
 import { openCommand } from "./commands/open.js";
 import { statusCommand } from "./commands/status.js";
 import { loadConfig } from "./config.js";
@@ -52,6 +53,19 @@ export function createCLI(): Command {
 		.action(async (identifier: string) => {
 			const config = loadConfig({});
 			await openCommand(identifier, config);
+		});
+
+	program
+		.command("nudge <identifier>")
+		.description("Post a nudge comment on a PR")
+		.option("-m, --message <msg>", "Custom nudge message")
+		.option("-y, --yes", "Skip confirmation")
+		.action(async (identifier: string, opts) => {
+			const config = loadConfig({});
+			await nudgeCommand(identifier, config, {
+				message: opts.message,
+				yes: opts.yes ?? false,
+			});
 		});
 
 	program
