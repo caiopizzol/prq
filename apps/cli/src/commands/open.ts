@@ -9,6 +9,6 @@ export async function openCommand(
 ): Promise<void> {
 	const pr = await resolveIdentifier(identifier, config);
 	const label = `${pr.owner}/${pr.repo}#${pr.number}`;
-	console.log(chalk.dim(`Opening ${label}...`));
+	process.stderr.write(chalk.dim(`Opening ${label}...\n`));
 	await openUrl(pr.url);
 }
