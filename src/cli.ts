@@ -1,7 +1,15 @@
+import fs from "node:fs";
+import path from "node:path";
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
 import { statusCommand } from "./commands/status.js";
 import { loadConfig } from "./config.js";
+
+function getVersion(): string {
+	const pkgPath = path.resolve(import.meta.dir, "../package.json");
+	const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+	return pkg.version;
+}
 
 export function createCLI(): Command {
 	const program = new Command();
@@ -9,7 +17,7 @@ export function createCLI(): Command {
 	program
 		.name("prq")
 		.description("PR Queue — see what code reviews need your attention")
-		.version("0.0.0");
+		.version(getVersion());
 
 	program
 		.command("status", { isDefault: true })
