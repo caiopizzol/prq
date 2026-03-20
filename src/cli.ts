@@ -9,7 +9,7 @@ export function createCLI(): Command {
 	program
 		.name("prq")
 		.description("PR Queue — see what code reviews need your attention")
-		.version("0.1.0");
+		.version("0.0.0");
 
 	program
 		.command("status", { isDefault: true })
