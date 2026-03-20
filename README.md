@@ -1,5 +1,7 @@
 # prq
 
+[![npm version](https://img.shields.io/npm/v/prq.svg)](https://www.npmjs.com/package/prq)
+
 PR Queue — see what code reviews need your attention.
 
 A CLI tool that queries GitHub and shows you a categorized view of PRs that need action. No more missing review requests because someone forgot to re-request, no more stale PRs sitting idle.
