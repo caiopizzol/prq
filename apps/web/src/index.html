@@ -75,6 +75,47 @@ for (const [tag, attrs] of favicons) {
 </div>
 
 <div class="page">
+  <hr>
+
+  <section class="actions-section">
+    <div class="actions-label">See it. Act on it.</div>
+    <div class="actions-list">
+      <div class="action-row">
+        <span class="action-cmd">$ prq review 482</span>
+        <span class="action-desc">open files changed</span>
+      </div>
+      <div class="action-row">
+        <span class="action-cmd">$ prq open 482</span>
+        <span class="action-desc">open in browser</span>
+      </div>
+      <div class="action-row">
+        <span class="action-cmd">$ prq nudge 482</span>
+        <span class="action-desc">post a comment</span>
+      </div>
+      <div class="action-row">
+        <span class="action-cmd">$ prq -i</span>
+        <span class="action-desc">interactive mode</span>
+      </div>
+    </div>
+  </section>
+
+  <hr>
+
+  <section class="configure-section">
+    <div class="actions-label">Bring your own tools.</div>
+    <div class="config-block">
+      <div class="config-comment">// .prqrc.json</div>
+      <div class="config-line">{</div>
+      <div class="config-line">&nbsp;&nbsp;"actions": {</div>
+      <div class="config-line">&nbsp;&nbsp;&nbsp;&nbsp;"review": "<span class="config-value">claude -p '/review {url}'</span>"</div>
+      <div class="config-line">&nbsp;&nbsp;}</div>
+      <div class="config-line">}</div>
+    </div>
+    <div class="config-sub">Configure any command. Use Claude Code, Codex, gh, or any CLI tool.</div>
+  </section>
+
+  <hr>
+
   <section class="cta">
     <div class="cta-heading">Get started in one command.</div>
     <div class="cta-install" onclick="copyInstall(this, 'npm i -g prq-cli')">

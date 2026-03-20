@@ -205,6 +205,80 @@ hr {
 	display: inline;
 }
 
+/* ── Actions ── */
+.actions-section {
+	padding: 80px 0;
+}
+
+.actions-label {
+	font-family: var(--mono);
+	font-size: 16px;
+	font-weight: 500;
+	color: var(--mid);
+	margin-bottom: 32px;
+}
+
+.actions-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.action-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	padding: 14px 0;
+	border-bottom: 1px solid var(--faint);
+	font-family: var(--mono);
+	font-size: 14px;
+}
+
+.action-row:first-child {
+	border-top: 1px solid var(--faint);
+}
+
+.action-cmd {
+	color: var(--mid);
+}
+
+.action-desc {
+	color: var(--dim);
+	font-size: 13px;
+}
+
+/* ── Configure ── */
+.configure-section {
+	padding: 80px 0;
+}
+
+.config-block {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 20px 24px;
+	font-family: var(--mono);
+	font-size: 13px;
+	line-height: 2;
+	color: var(--dim);
+	margin-bottom: 16px;
+}
+
+.config-comment {
+	color: var(--dim);
+	font-style: italic;
+}
+
+.config-value {
+	color: var(--sym-g);
+}
+
+.config-sub {
+	font-family: var(--mono);
+	font-size: 12px;
+	color: var(--dim);
+}
+
 /* ── CTA ── */
 .cta {
 	padding: 100px 0;
