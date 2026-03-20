@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>prq. — your review queue, at a glance</title>
-<meta name="description" content="See what code reviews need your attention. One command. No dashboard.">
+<title>prq. — one command, zero noise</title>
+<meta name="description" content="See what code reviews need your attention. One command. Zero noise.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <script>
@@ -26,7 +26,10 @@ for (const [tag, attrs] of favicons) {
 <body>
 
 <div class="page">
-  <section class="hero"><div class="hero-logo">prq<span>.</span></div></section>
+  <section class="hero">
+    <div class="hero-logo">prq<span>.</span></div>
+    <div class="hero-tagline">One command. Zero noise.</div>
+  </section>
 
   <section class="problem">
     <p>You check your email. Twelve GitHub notifications. Three are reviews. One is a bot.</p>
@@ -117,7 +120,7 @@ for (const [tag, attrs] of favicons) {
   <hr>
 
   <section class="cta">
-    <div class="cta-heading">Get started in one command.</div>
+    <div class="cta-heading">Install. Run. Done.</div>
     <div class="cta-install" onclick="copyInstall(this, 'npm i -g prq-cli')">
       <div><span class="prompt">$ </span><span class="cmd">npm i -g prq-cli</span></div>
       <button type="button" class="copy-btn">copy</button>
@@ -125,7 +128,7 @@ for (const [tag, attrs] of favicons) {
   </section>
 
   <footer>
-    <div>open source · MIT</div>
+    <div>prq.sh · open source · MIT</div>
     <div class="footer-links">
       <a href="https://github.com/caiopizzol/prq">github</a>
       <a href="https://www.npmjs.com/package/prq-cli">npm</a>
