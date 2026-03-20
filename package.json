@@ -1,5 +1,5 @@
 {
-	"name": "prq",
+	"name": "prq-cli",
 	"version": "0.0.0",
 	"description": "PR Queue — see what code reviews need your attention",
 	"type": "module",
