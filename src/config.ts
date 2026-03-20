@@ -24,7 +24,11 @@ export function loadConfig(cliOverrides: Partial<Config>): Config {
 		config = { ...config, ...JSON.parse(fs.readFileSync(localPath, "utf8")) };
 	}
 
-	config = { ...config, ...cliOverrides };
+	for (const [key, value] of Object.entries(cliOverrides)) {
+		if (value !== undefined) {
+			config[key] = value;
+		}
+	}
 
 	return configSchema.parse(config);
 }
