@@ -35,7 +35,7 @@
 	"author": "Caio Pizzol",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/caiopizzol/prq.git"
+		"url": "git+https://github.com/caiopizzol/prq.git"
 	},
 	"homepage": "https://github.com/caiopizzol/prq"
 }
