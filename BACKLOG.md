@@ -1,24 +1,24 @@
 # PRQ — Product Backlog
 
+## Done
+
+- [x] `prq status` — categorized view of PRs needing attention
+- [x] `prq init` — interactive config setup
+- [x] `prq open <identifier>` — open a PR in the browser
+- [x] `prq nudge <identifier>` — post a nudge comment on stale PRs
+- [x] Identifier resolution: number, repo#number, full URL
+- [x] Landing page with scroll-animated terminal demo
+- [x] Monorepo structure (apps/cli, apps/web)
+- [x] Semantic release to npm
+- [x] Brand identity (.brand file, design system, favicons)
+
 ## Now
 
-- [ ] `prq open [identifier]` — resolve a PR from the queue and open it in the browser
-  - Identifier parsing: PR number (`482`), repo#number (`org/repo#482`), full URL
-  - Number-only resolution: search the user's queue, find the matching PR
-  - Cross-platform: macOS (`open`), Linux (`xdg-open`), Windows (`start`)
-  - Foundation for all future action commands
-
-## Next
-
-- [ ] `prq nudge [identifier]` — post a comment on a stale PR
-  - Default message: "Hey @{author}, is this PR still active?"
-  - `--message` flag for custom message
-  - Confirmation prompt before posting (skip with `--yes`)
-- [ ] `prq review [identifier]` — open PR files changed tab for review
+- [ ] `prq review <identifier>` — open PR files changed tab for review
   - Default: opens `{url}/files` in browser
   - Configurable: users can override to run Claude Code, Codex, etc.
 
-## Later
+## Next
 
 - [ ] **Pluggable action system** — actions as shell command templates in config
   - `"review": "claude -p '/review {url}'"` — bring your own review tool
@@ -30,6 +30,9 @@
   - Arrow keys to navigate PRs from status list
   - Enter to select → submenu: open, review, nudge, copy URL
   - `q` to quit
+
+## Later
+
 - [ ] **Claude Code integration**
   - `prq review <pr>` dispatches Claude Code session via `claude -p`
   - `prq sessions` — track which PRs are being reviewed

@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
 import { nudgeCommand } from "./commands/nudge.js";
 import { openCommand } from "./commands/open.js";
+import { reviewCommand } from "./commands/review.js";
 import { statusCommand } from "./commands/status.js";
 import { loadConfig } from "./config.js";
 
@@ -53,6 +54,14 @@ export function createCLI(): Command {
 		.action(async (identifier: string) => {
 			const config = loadConfig({});
 			await openCommand(identifier, config);
+		});
+
+	program
+		.command("review <identifier>")
+		.description("Open PR files changed tab for review")
+		.action(async (identifier: string) => {
+			const config = loadConfig({});
+			await reviewCommand(identifier, config);
 		});
 
 	program

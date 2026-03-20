@@ -52,6 +52,15 @@ prq open superdoc-dev/superdoc#482         # opens directly
 prq open https://github.com/org/repo/pull/482
 ```
 
+### `prq review <identifier>`
+
+Open a PR's "Files changed" tab for review.
+
+```bash
+prq review 482
+prq review superdoc-dev/superdoc#482
+```
+
 ### `prq nudge <identifier>`
 
 Post a comment on a PR asking if it's still active.
