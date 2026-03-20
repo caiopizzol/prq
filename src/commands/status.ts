@@ -1,44 +1,55 @@
+import { categorize } from "../categorize.js";
+import type { Config } from "../config.js";
 import { getAuthenticatedUser } from "../github/client.js";
 import {
-  fetchReviewedPRs,
-  fetchRequestedPRs,
-  fetchAuthoredPRs,
-  enrichAllWithReviews,
+	enrichAllWithReviews,
+	fetchAuthoredPRs,
+	fetchRequestedPRs,
+	fetchReviewedPRs,
 } from "../github/queries.js";
-import { categorize } from "../categorize.js";
 import { formatStatus } from "../output.js";
-import type { Config } from "../config.js";
 import type { StatusResult } from "../types.js";
 
-export async function statusCommand(config: Config, json: boolean): Promise<void> {
-  const user = config.user ?? (await getAuthenticatedUser());
+export async function statusCommand(
+	config: Config,
+	json: boolean,
+): Promise<void> {
+	const user = config.user ?? (await getAuthenticatedUser());
 
-  process.stderr.write(`Fetching PRs for ${user}...\n`);
+	process.stderr.write(`Fetching PRs for ${user}...\n`);
 
-  // Phase 1: Discovery (parallel search queries)
-  const [reviewedRaw, requestedPRs, authoredPRs] = await Promise.all([
-    fetchReviewedPRs(user, config.repos),
-    fetchRequestedPRs(user, config.repos),
-    fetchAuthoredPRs(user, config.repos),
-  ]);
+	// Phase 1: Discovery (parallel search queries)
+	const [reviewedRaw, requestedPRs, authoredPRs] = await Promise.all([
+		fetchReviewedPRs(user, config.repos),
+		fetchRequestedPRs(user, config.repos),
+		fetchAuthoredPRs(user, config.repos),
+	]);
 
-  process.stderr.write(`Found ${reviewedRaw.length} reviewed, ${requestedPRs.length} requested, ${authoredPRs.length} authored\n`);
+	process.stderr.write(
+		`Found ${reviewedRaw.length} reviewed, ${requestedPRs.length} requested, ${authoredPRs.length} authored\n`,
+	);
 
-  // Phase 2: Enrich reviewed PRs with review/commit timestamps
-  const reviewedPRs = await enrichAllWithReviews(reviewedRaw, user);
+	// Phase 2: Enrich reviewed PRs with review/commit timestamps
+	const reviewedPRs = await enrichAllWithReviews(reviewedRaw, user);
 
-  // Phase 3: Categorize
-  const prs = categorize(user, reviewedPRs, requestedPRs, authoredPRs, config.staleDays);
+	// Phase 3: Categorize
+	const prs = categorize(
+		user,
+		reviewedPRs,
+		requestedPRs,
+		authoredPRs,
+		config.staleDays,
+	);
 
-  const result: StatusResult = {
-    user,
-    timestamp: new Date().toISOString(),
-    prs,
-  };
+	const result: StatusResult = {
+		user,
+		timestamp: new Date().toISOString(),
+		prs,
+	};
 
-  if (json) {
-    process.stdout.write(JSON.stringify(result, null, 2) + "\n");
-  } else {
-    process.stdout.write(formatStatus(result));
-  }
+	if (json) {
+		process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+	} else {
+		process.stdout.write(formatStatus(result));
+	}
 }
