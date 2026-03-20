@@ -1,6 +1,6 @@
 # prq
 
-[![npm version](https://img.shields.io/npm/v/prq.svg)](https://www.npmjs.com/package/prq)
+[![npm version](https://img.shields.io/npm/v/prq-cli.svg)](https://www.npmjs.com/package/prq-cli)
 
 PR Queue — see what code reviews need your attention.
 
@@ -9,7 +9,7 @@ A CLI tool that queries GitHub and shows you a categorized view of PRs that need
 ## Install
 
 ```bash
-bun install -g prq
+npm install -g prq-cli
 ```
 
 Requires [GitHub CLI](https://cli.github.com/) (`gh`) to be authenticated.
