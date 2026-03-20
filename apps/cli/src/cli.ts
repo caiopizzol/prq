@@ -3,14 +3,20 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
+import { openCommand } from "./commands/open.js";
 import { statusCommand } from "./commands/status.js";
 import { loadConfig } from "./config.js";
 
 function getVersion(): string {
 	const __dirname = path.dirname(fileURLToPath(import.meta.url));
-	const pkgPath = path.resolve(__dirname, "../../package.json");
-	const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
-	return pkg.version;
+	// Works both in dev (src/cli.ts → ../../) and built (dist/bin/prq.js → ../../)
+	for (const rel of ["../../package.json", "../package.json"]) {
+		const p = path.resolve(__dirname, rel);
+		if (fs.existsSync(p)) {
+			return JSON.parse(fs.readFileSync(p, "utf8")).version;
+		}
+	}
+	return "0.0.0";
 }
 
 export function createCLI(): Command {
@@ -38,6 +44,14 @@ export function createCLI(): Command {
 			});
 
 			await statusCommand(config, opts.json ?? false);
+		});
+
+	program
+		.command("open <identifier>")
+		.description("Open a PR in the browser")
+		.action(async (identifier: string) => {
+			const config = loadConfig({});
+			await openCommand(identifier, config);
 		});
 
 	program
