@@ -17,11 +17,11 @@ Requires [GitHub CLI](https://cli.github.com/) (`gh`) to be authenticated.
 ## Quick Start
 
 ```bash
-# Set up config for the current project
-prq init
-
 # See your review queue
 prq
+
+# Interactive mode — navigate with arrow keys, act with shortcuts
+prq -i
 ```
 
 ## Commands
@@ -40,11 +40,23 @@ prq                                        # all repos you have access to
 prq status --repos org/repo1 org/repo2     # specific repos
 prq status --stale-days 7                  # custom stale threshold
 prq status --json                          # machine-readable output
+prq status -i                              # interactive mode
 ```
+
+### Interactive Mode
+
+Run `prq -i` to navigate your queue with keyboard shortcuts:
+
+- **↑↓** navigate between PRs
+- **r** review — open files changed tab
+- **o** open — open PR in browser
+- **n** nudge — post a comment
+- **c** copy URL to clipboard
+- **q** quit
 
 ### `prq open <identifier>`
 
-Open a PR in the browser. Accepts a PR number, `org/repo#number`, or a full GitHub URL.
+Open a PR in the browser.
 
 ```bash
 prq open 482                               # searches your queue for PR #482
@@ -71,13 +83,17 @@ prq nudge 482 --yes                        # skip confirmation
 prq nudge 482 --message "Any updates?"     # custom message
 ```
 
+### `prq run <action> <identifier>`
+
+Run a custom action defined in your config.
+
+```bash
+prq run checkout 482
+```
+
 ### `prq init`
 
 Creates a `.prqrc.json` config file in the current directory.
-
-```bash
-prq init
-```
 
 ## Configuration
 
@@ -92,9 +108,27 @@ Example `.prqrc.json`:
 ```json
 {
   "repos": ["org/repo1", "org/repo2"],
-  "staleDays": 5
+  "staleDays": 5,
+  "actions": {
+    "review": "claude -p '/review {url}'",
+    "checkout": "gh pr checkout {number} --repo {owner}/{repo}"
+  }
 }
 ```
+
+### Custom Actions
+
+Actions are shell command templates with variables:
+
+- `{url}` — full PR URL
+- `{number}` — PR number
+- `{owner}` — repo owner
+- `{repo}` — repo name
+- `{title}` — PR title
+- `{author}` — PR author
+- `{days}` — days since last activity
+
+Default actions (`open`, `review`, `nudge`) can be overridden. Custom actions are available via `prq run <action>` and in interactive mode.
 
 ## License
 

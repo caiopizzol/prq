@@ -4,7 +4,7 @@
 
 PR Queue — see what code reviews need your attention.
 
-A CLI tool that queries GitHub and shows you a categorized view of PRs that need action. No more missing review requests because someone forgot to re-request, no more stale PRs sitting idle.
+A CLI tool that queries GitHub and shows you a categorized view of PRs that need action. Navigate your queue, open reviews, nudge stale PRs — all from the terminal.
 
 ## Install
 
@@ -17,84 +17,71 @@ Requires [GitHub CLI](https://cli.github.com/) (`gh`) to be authenticated.
 ## Quick Start
 
 ```bash
-# Set up config for the current project
-prq init
-
 # See your review queue
 prq
+
+# Interactive mode
+prq -i
+
+# Act on a PR
+prq review 482
+prq open 482
+prq nudge 482
 ```
 
 ## Commands
 
 ### `prq status` (default)
 
-Shows PRs needing your attention, grouped into four categories:
-
-- **Needs Re-review** — you left a review, but new commits were pushed after
-- **Requested Reviews** — you're a requested reviewer and haven't reviewed yet
-- **Stale** — PRs you're involved in with no activity for N days
-- **Your PRs Waiting** — PRs you authored that are waiting on someone else
+Shows PRs needing your attention in four categories:
 
 ```bash
-prq                                        # all repos you have access to
+prq                                        # all repos
 prq status --repos org/repo1 org/repo2     # specific repos
-prq status --stale-days 7                  # custom stale threshold
-prq status --json                          # machine-readable output
+prq status --json                          # machine-readable
+prq status -i                              # interactive mode
 ```
 
-### `prq open <identifier>`
+### Interactive Mode (`prq -i`)
 
-Open a PR in the browser. Accepts a PR number, `org/repo#number`, or a full GitHub URL.
+Navigate your queue with keyboard shortcuts:
+
+- **↑↓** navigate  **r** review  **o** open  **n** nudge  **c** copy url  **q** quit
+
+### `prq open/review/nudge <identifier>`
+
+Act on PRs by number, `org/repo#number`, or full URL:
 
 ```bash
-prq open 482                               # searches your queue for PR #482
-prq open superdoc-dev/superdoc#482         # opens directly
-prq open https://github.com/org/repo/pull/482
+prq open 482                               # open in browser
+prq review 482                             # open files changed
+prq nudge 482                              # post a comment
+prq nudge 482 --yes --message "Update?"    # skip confirmation
 ```
 
-### `prq review <identifier>`
+### `prq run <action> <identifier>`
 
-Open a PR's "Files changed" tab for review.
-
-```bash
-prq review 482
-prq review superdoc-dev/superdoc#482
-```
-
-### `prq nudge <identifier>`
-
-Post a comment on a PR asking if it's still active.
-
-```bash
-prq nudge 482                              # confirm before posting
-prq nudge 482 --yes                        # skip confirmation
-prq nudge 482 --message "Any updates?"     # custom message
-```
+Run custom actions defined in your config.
 
 ### `prq init`
 
-Creates a `.prqrc.json` config file in the current directory.
+Creates a `.prqrc.json` config file.
 
-```bash
-prq init
-```
+## Custom Actions
 
-## Configuration
-
-Config is loaded in this order (later overrides earlier):
-
-1. `~/.config/prq/config.json` — global defaults
-2. `.prqrc.json` — per-project config
-3. CLI flags
-
-Example `.prqrc.json`:
+Actions are configurable shell command templates:
 
 ```json
 {
-  "repos": ["org/repo1", "org/repo2"],
-  "staleDays": 5
+  "repos": ["org/repo"],
+  "actions": {
+    "review": "claude -p '/review {url}'",
+    "checkout": "gh pr checkout {number} --repo {owner}/{repo}"
+  }
 }
 ```
+
+Variables: `{url}`, `{number}`, `{owner}`, `{repo}`, `{title}`, `{author}`, `{days}`
 
 ## Project Structure
 
@@ -102,9 +89,9 @@ Example `.prqrc.json`:
 prq/
 ├── apps/
 │   ├── cli/     # CLI tool (published to npm as prq-cli)
-│   └── web/     # Landing page (prq.sh)
-├── brand/       # Design assets and mockups
-└── .brand       # Brand strategy file
+│   └── web/     # Landing page
+├── brand/       # Design assets
+└── .brand       # Brand strategy
 ```
 
 ## Development

@@ -37,13 +37,18 @@ export function createCLI(): Command {
 			"3",
 		)
 		.option("--json", "Output as JSON")
+		.option("-i, --interactive", "Interactive mode with keyboard shortcuts")
 		.action(async (opts) => {
 			const config = loadConfig({
 				repos: opts.repos,
 				staleDays: opts.staleDays ? parseInt(opts.staleDays, 10) : undefined,
 			});
 
-			await statusCommand(config, opts.json ?? false);
+			await statusCommand(
+				config,
+				opts.json ?? false,
+				opts.interactive ?? false,
+			);
 		});
 
 	// Built-in action shortcuts

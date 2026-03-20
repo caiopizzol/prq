@@ -7,12 +7,14 @@ import {
 	fetchRequestedPRs,
 	fetchReviewedPRs,
 } from "../github/queries.js";
+import { interactiveMode } from "../interactive.js";
 import { formatStatus } from "../output.js";
 import type { StatusResult } from "../types.js";
 
 export async function statusCommand(
 	config: Config,
 	json: boolean,
+	interactive: boolean,
 ): Promise<void> {
 	const user = config.user ?? (await getAuthenticatedUser());
 
@@ -48,6 +50,8 @@ export async function statusCommand(
 
 	if (json) {
 		process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+	} else if (interactive && process.stdin.isTTY) {
+		await interactiveMode(result, config);
 	} else {
 		process.stdout.write(formatStatus(result));
 	}
