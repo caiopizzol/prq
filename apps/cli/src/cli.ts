@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
 import { nudgeCommand } from "./commands/nudge.js";
 import { runCommand } from "./commands/run.js";
+import { skillCommand } from "./commands/skill.js";
 import { statusCommand } from "./commands/status.js";
 import { loadConfig } from "./config.js";
 
@@ -88,6 +89,14 @@ export function createCLI(): Command {
 		.action(async (action: string, identifier: string) => {
 			const config = loadConfig({});
 			await runCommand(action, identifier, config);
+		});
+
+	program
+		.command("skill")
+		.description("Install the /prq skill for Claude Code")
+		.option("-g, --global", "Install globally (~/.claude/skills/prq/)")
+		.action((opts) => {
+			skillCommand(opts.global ?? false);
 		});
 
 	program
