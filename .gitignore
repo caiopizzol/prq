@@ -2,4 +2,6 @@ node_modules/
 dist/
 *.tsbuildinfo
 .prqrc.json
-dev/apps/web/.DS_Store
+.DS_Store
+.wrangler/
+dev/
