@@ -106,15 +106,26 @@ for (const [tag, attrs] of favicons) {
 
   <section class="configure-section">
     <div class="actions-label">Bring your own tools.</div>
-    <div class="config-block">
-      <div class="config-comment">// .prqrc.json</div>
-      <div class="config-line">{</div>
-      <div class="config-line">&nbsp;&nbsp;"actions": {</div>
-      <div class="config-line">&nbsp;&nbsp;&nbsp;&nbsp;"review": "<span class="config-value">claude -p '/review {url}'</span>"</div>
-      <div class="config-line">&nbsp;&nbsp;}</div>
-      <div class="config-line">}</div>
+    <div class="config-sub" style="margin-bottom: 32px;">`prq review` runs whatever you tell it to. Define actions in <span style="color: var(--mid);">.prqrc.json</span> — any CLI tool works.</div>
+
+    <div class="config-examples">
+      <div class="config-example">
+        <div class="config-example-label">Claude Code</div>
+        <div class="config-example-value">"review": "<span class="config-value">claude -p '/review {url}'</span>"</div>
+      </div>
+      <div class="config-example">
+        <div class="config-example-label">Codex</div>
+        <div class="config-example-value">"review": "<span class="config-value">codex exec 'review {url}'</span>"</div>
+      </div>
+      <div class="config-example">
+        <div class="config-example-label">gh CLI</div>
+        <div class="config-example-value">"checkout": "<span class="config-value">gh pr checkout {number}</span>"</div>
+      </div>
+      <div class="config-example">
+        <div class="config-example-label">No config</div>
+        <div class="config-example-value" style="color: var(--dim);">opens in browser. zero setup.</div>
+      </div>
     </div>
-    <div class="config-sub">Configure any command. Use Claude Code, Codex, gh, or any CLI tool.</div>
   </section>
 
   <hr>

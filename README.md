@@ -2,9 +2,9 @@
 
 [![npm version](https://img.shields.io/npm/v/prq-cli.svg)](https://www.npmjs.com/package/prq-cli)
 
-PR Queue — see what code reviews need your attention.
+PR Queue — one command, zero noise.
 
-A CLI tool that queries GitHub and shows you a categorized view of PRs that need action. Navigate your queue, open reviews, nudge stale PRs — all from the terminal.
+Four categories. What needs re-review, what's requested, what's stale, what's waiting on others. Run `prq`, see your queue, act on it, move on.
 
 ## Install
 

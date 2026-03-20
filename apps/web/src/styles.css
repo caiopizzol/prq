@@ -261,31 +261,46 @@ hr {
 	padding: 80px 0;
 }
 
-.config-block {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 8px;
-	padding: 20px 24px;
-	font-family: var(--mono);
-	font-size: 13px;
-	line-height: 2;
-	color: var(--dim);
-	margin-bottom: 16px;
-}
-
-.config-comment {
-	color: var(--dim);
-	font-style: italic;
-}
-
 .config-value {
 	color: var(--sym-g);
 }
 
 .config-sub {
 	font-family: var(--mono);
-	font-size: 12px;
+	font-size: 13px;
 	color: var(--dim);
+	line-height: 1.7;
+}
+
+.config-examples {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.config-example {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	padding: 14px 0;
+	border-bottom: 1px solid var(--faint);
+	font-family: var(--mono);
+	font-size: 13px;
+}
+
+.config-example:first-child {
+	border-top: 1px solid var(--faint);
+}
+
+.config-example-label {
+	color: var(--dim);
+	flex-shrink: 0;
+	width: 100px;
+}
+
+.config-example-value {
+	color: var(--mid);
+	text-align: right;
 }
 
 /* ── CTA ── */
