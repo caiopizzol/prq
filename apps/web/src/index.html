@@ -7,10 +7,20 @@
 <meta name="description" content="See what code reviews need your attention. One command. No dashboard.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
+<script>
+// Injected at runtime to avoid Bun bundler resolving these as imports
+const favicons = [
+  ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }],
+  ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' }],
+  ['link', { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' }],
+  ['link', { rel: 'manifest', href: '/site.webmanifest' }],
+];
+for (const [tag, attrs] of favicons) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  document.head.appendChild(el);
+}
+</script>
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
