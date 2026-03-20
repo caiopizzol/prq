@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { initCommand } from "./commands/init.js";
 import { statusCommand } from "./commands/status.js";
 import { loadConfig } from "./config.js";
 
@@ -27,6 +28,13 @@ export function createCLI(): Command {
 			});
 
 			await statusCommand(config, opts.json ?? false);
+		});
+
+	program
+		.command("init")
+		.description("Create config file interactively")
+		.action(async () => {
+			await initCommand();
 		});
 
 	return program;
