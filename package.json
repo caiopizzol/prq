@@ -1,10 +1,10 @@
 {
-	"name": "devq",
+	"name": "prq",
 	"version": "0.0.0",
 	"description": "PR Queue — see what code reviews need your attention",
 	"type": "module",
 	"bin": {
-		"devq": "./dist/bin/prq.js"
+		"prq": "./dist/bin/prq.js"
 	},
 	"files": [
 		"dist"
