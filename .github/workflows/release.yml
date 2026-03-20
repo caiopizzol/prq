@@ -29,8 +29,6 @@ jobs:
       - run: bun run typecheck
       - run: bun test
       - run: bun run build
-      - name: Strip workspaces for npm compatibility
-        run: node -e "const fs=require('fs'),p=JSON.parse(fs.readFileSync('package.json','utf8'));delete p.workspaces;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n')"
       - run: bunx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
