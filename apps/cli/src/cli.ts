@@ -4,14 +4,12 @@ import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { initCommand } from "./commands/init.js";
 import { nudgeCommand } from "./commands/nudge.js";
-import { openCommand } from "./commands/open.js";
-import { reviewCommand } from "./commands/review.js";
+import { runCommand } from "./commands/run.js";
 import { statusCommand } from "./commands/status.js";
 import { loadConfig } from "./config.js";
 
 function getVersion(): string {
 	const __dirname = path.dirname(fileURLToPath(import.meta.url));
-	// Works both in dev (src/cli.ts → ../../) and built (dist/bin/prq.js → ../../)
 	for (const rel of ["../../package.json", "../package.json"]) {
 		const p = path.resolve(__dirname, rel);
 		if (fs.existsSync(p)) {
@@ -48,12 +46,13 @@ export function createCLI(): Command {
 			await statusCommand(config, opts.json ?? false);
 		});
 
+	// Built-in action shortcuts
 	program
 		.command("open <identifier>")
 		.description("Open a PR in the browser")
 		.action(async (identifier: string) => {
 			const config = loadConfig({});
-			await openCommand(identifier, config);
+			await runCommand("open", identifier, config);
 		});
 
 	program
@@ -61,7 +60,7 @@ export function createCLI(): Command {
 		.description("Open PR files changed tab for review")
 		.action(async (identifier: string) => {
 			const config = loadConfig({});
-			await reviewCommand(identifier, config);
+			await runCommand("review", identifier, config);
 		});
 
 	program
@@ -75,6 +74,15 @@ export function createCLI(): Command {
 				message: opts.message,
 				yes: opts.yes ?? false,
 			});
+		});
+
+	// Generic action runner for custom actions
+	program
+		.command("run <action> <identifier>")
+		.description("Run a custom action on a PR")
+		.action(async (action: string, identifier: string) => {
+			const config = loadConfig({});
+			await runCommand(action, identifier, config);
 		});
 
 	program

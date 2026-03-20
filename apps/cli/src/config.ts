@@ -6,6 +6,7 @@ const configSchema = z.object({
 	repos: z.array(z.string()).default([]),
 	staleDays: z.number().default(3),
 	user: z.string().optional(),
+	actions: z.record(z.string()).default({}),
 });
 
 export type Config = z.infer<typeof configSchema>;
