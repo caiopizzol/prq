@@ -1,0 +1,32 @@
+{
+  "name": "prq",
+  "version": "0.1.0",
+  "description": "PR Queue — see what code reviews need your attention",
+  "type": "module",
+  "bin": {
+    "prq": "./dist/bin/prq.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "bun build src/bin/prq.ts --outdir dist/bin --target node",
+    "dev": "bun run src/bin/prq.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@octokit/rest": "^21.1.1",
+    "commander": "^13.1.0",
+    "chalk": "^5.4.1",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": ["github", "pull-request", "code-review", "cli", "developer-tools"],
+  "license": "MIT"
+}
