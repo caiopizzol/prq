@@ -19,6 +19,8 @@ Built out of personal frustration: the daily ritual of opening GitHub, hunting t
 
 **The problem it solves:** Developers lose track of what needs their attention. GitHub's notification system treats a bot comment the same as an urgent review request. The "awaiting your review" filter misses PRs where authors addressed feedback but forgot to re-request review. Stale PRs sit for days. The result: slower shipping, frustrated teammates, dropped work.
 
+AI is accelerating this. More code is being generated, which means more PRs, which means more reviews. The review queue is growing faster than the tools to manage it. The solutions the market offers are either "let AI review it" or "buy a platform." Neither helps the person staring at fifteen open PRs trying to figure out which ones actually need them.
+
 **The transformation:**
 - Before: Open GitHub. Scroll notifications. Click into PRs. Cross-reference. Build a mental model. Repeat daily.
 - After: `prq` — and you know exactly where you stand.
@@ -29,6 +31,8 @@ Built out of personal frustration: the daily ritual of opening GitHub, hunting t
 
 **Category:** Review queue CLI
 
+**Stance:** Reviewer-first. Every tool in this space is either author-centric ("never wait on review again") or automation-centric ("let AI review it"). prq is the only tool that speaks to the reviewer — the person who opens their laptop and asks "what needs me?"
+
 **What prq is NOT:**
 - Not a dashboard. Not a web app. Not a platform.
 - Not a notification manager. We don't show you notifications — we tell you what needs action.
@@ -37,11 +41,13 @@ Built out of personal frustration: the daily ritual of opening GitHub, hunting t
 
 **Competitive landscape:**
 
-The market splits into three tiers:
+The market splits into five tiers:
 
 1. **Heavy platforms** (Graphite, Aviator) — require workflow adoption, team buy-in, paid plans. They replace your Git workflow with stacked PRs, merge queues, AI reviewers. High value, high commitment.
-2. **General dashboards** (gh-dash) — rich terminal UIs that show PRs and issues by filter. Powerful, configurable, but not opinionated about what matters. They display. They don't triage.
-3. **Notification tools** (gh-notify, Octobox, Gitify) — surface raw GitHub notifications with better filtering. They don't understand PR review state — they just pipe what GitHub already sends.
+2. **AI reviewers** (CodeRabbit, Qodo, CodeAnt AI) — bots that do the reviewing for you. They automate the content of reviews, not the logistics. They don't help you manage what's waiting.
+3. **General dashboards** (gh-dash) — rich terminal UIs that show PRs and issues by filter. Powerful, configurable, but not opinionated about what matters. They display. They don't triage.
+4. **Notification tools** (gh-notify, Octobox, Gitify) — surface raw GitHub notifications with better filtering. They don't understand PR review state — they just pipe what GitHub already sends.
+5. **Review experience tools** (Pull Panda) — optimize the act of reviewing a single PR. Better UX for reading diffs, understanding changes. Don't answer "which PR should I review next?"
 
 prq sits in the gap: **an opinionated, zero-config CLI that understands PR review semantics and categorizes by action needed.**
 
@@ -50,7 +56,8 @@ prq sits in the gap: **an opinionated, zero-config CLI that understands PR revie
 - **Zero config** — works the moment `gh` is authenticated. No YAML, no Nerd Fonts, no setup wizard.
 - **Single-purpose** — does one thing. Doesn't try to replace GitHub, manage stacked PRs, or run CI.
 - **Nudge as a primitive** — built-in ability to poke stale PRs. Turns passive monitoring into active queue management.
-- **Composable** — JSON output, custom actions with template variables, pipes to scripts and agents.
+- **Composable** — JSON output, custom actions with template variables, pipes to scripts and agents. `prq review` runs whatever you tell it to — Claude Code, Codex, a shell script, gh CLI. No other queue tool does this.
+- **Reviewer-first** — built for the person doing reviews, not the person waiting on them. The reviewer's perspective is the default.
 
 **Territory:** prq owns the concept of **the review queue as a first-class object** — not a filter on a dashboard, not a subset of notifications, but a standalone, semantic, actionable queue.
 
@@ -183,6 +190,8 @@ That's the whole product. Not a platform. Not a workflow. A clear answer to a si
 - "We don't replace GitHub. We make it legible."
 - "Run it. Read it. Get back to work."
 - "Four categories. That's the whole product."
+- "More code. More PRs. Same you. That's why prq exists."
+- "Every tool talks to the PR author. prq talks to the reviewer."
 
 ### Social Bios
 
@@ -241,6 +250,8 @@ That's the whole product. Not a platform. Not a workflow. A clear answer to a si
 - **Border:** `#1E1E24` — dividers, card borders, horizontal rules
 - **Text:** `#FAFAFA` (white) — primary text, headings
 - **Muted:** `#6E6E7A` — secondary text, descriptions, captions
+- **Dim:** `#3E3E47` — tertiary text, deemphasized content, problem narrative
+- **Faint:** `#2A2A32` — subtle borders, row dividers, background accents
 
 **Brand color:**
 - **Accent:** `#A78BFA` (soft purple) — the dot in `prq.`, links, interactive elements, highlights
