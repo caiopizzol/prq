@@ -140,6 +140,17 @@ for (const [tag, attrs] of favicons) {
 
   <hr>
 
+  <section class="skill-section">
+    <div class="actions-label">Works inside Claude Code.</div>
+    <div class="config-sub" style="margin-bottom: 32px;">Install the <span style="color: var(--mid);">/prq</span> skill and Claude can check your queue, open PRs, nudge, and run actions.</div>
+    <div class="cta-install" onclick="copyInstall(this, 'prq skill --global')">
+      <div><span class="prompt">$ </span><span class="cmd">prq skill --global</span></div>
+      <button type="button" class="copy-btn">copy</button>
+    </div>
+  </section>
+
+  <hr>
+
   <section class="cta">
     <div class="cta-heading">Install. Run. Done.</div>
     <div class="cta-install" onclick="copyInstall(this, 'npm i -g prq-cli')">

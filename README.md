@@ -88,6 +88,17 @@ Actions run with full terminal control — interactive tools like Claude Code ta
 
 Variables: `{url}`, `{number}`, `{owner}`, `{repo}`, `{fullRepo}`, `{title}`, `{author}`, `{days}`, `{category}`
 
+## Claude Code Skill
+
+Install the `/prq` skill so Claude Code can use prq commands inside any session:
+
+```bash
+prq skill --global     # install globally
+prq skill              # install in current project only
+```
+
+Then Claude can check your queue, open PRs, nudge, and run actions on your behalf.
+
 ## Project Structure
 
 ```

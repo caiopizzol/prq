@@ -344,6 +344,11 @@ hr {
 	text-align: right;
 }
 
+/* ── Skill ── */
+.skill-section {
+	padding: 80px 0;
+}
+
 /* ── CTA ── */
 .cta {
 	padding: 100px 0;
