@@ -71,19 +71,22 @@ Creates a `.prqrc.json` config file.
 
 ## Custom Actions
 
-Actions are configurable shell command templates:
+Actions are configurable shell command templates. Inline commands or scripts — everything is a string:
 
 ```json
 {
   "repos": ["org/repo"],
   "actions": {
-    "review": "claude -p '/review {url}'",
-    "checkout": "gh pr checkout {number} --repo {owner}/{repo}"
+    "review": "claude '/review {url}'",
+    "checkout": "gh pr checkout {number} --repo {owner}/{repo}",
+    "deep-review": "./scripts/review.sh {number} {url}"
   }
 }
 ```
 
-Variables: `{url}`, `{number}`, `{owner}`, `{repo}`, `{title}`, `{author}`, `{days}`
+Actions run with full terminal control — interactive tools like Claude Code take over the screen, and prq resumes when they exit.
+
+Variables: `{url}`, `{number}`, `{owner}`, `{repo}`, `{fullRepo}`, `{title}`, `{author}`, `{days}`, `{category}`
 
 ## Project Structure
 

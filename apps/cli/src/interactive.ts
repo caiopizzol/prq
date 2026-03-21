@@ -144,21 +144,46 @@ function render(state: RenderState) {
 	process.stdout.write(lines.join("\n"));
 }
 
+function suspend() {
+	process.stdin.setRawMode(false);
+	process.stdin.pause();
+	process.stdin.removeAllListeners("data");
+	// Show cursor and clear screen
+	process.stdout.write("\x1B[?25h\x1B[2J\x1B[H");
+}
+
+function resume(state: RenderState, onData: (key: string) => void) {
+	process.stdin.setRawMode(true);
+	process.stdin.resume();
+	process.stdin.setEncoding("utf8");
+	process.stdout.write("\x1B[?25l");
+	process.stdin.on("data", onData);
+	render(state);
+}
+
 async function runAction(
 	actionName: string,
 	template: string,
 	pr: CategorizedPR,
 	state: RenderState,
+	onData: (key: string) => void,
 ): Promise<string> {
-	const cmd = interpolate(template, buildContext(toResolvedPR(pr)));
-	state.message = chalk.dim(
-		`running ${actionName} on ${pr.repo}#${pr.number}...`,
+	const context = buildContext(toResolvedPR(pr), pr.category);
+	const cmd = interpolate(template, context);
+
+	// Suspend TUI so the command gets full terminal control
+	suspend();
+	process.stdout.write(
+		chalk.dim(`\n  running ${actionName} on ${pr.repo}#${pr.number}...\n\n`),
 	);
-	render(state);
+
 	try {
 		await executeCommand(cmd);
+		// Resume TUI
+		resume(state, onData);
 		return chalk.green(`${actionName}: ${pr.repo}#${pr.number}`);
 	} catch {
+		resume(state, onData);
 		return chalk.red(`${actionName} failed`);
 	}
 }
@@ -190,25 +215,8 @@ export async function interactiveMode(
 		return;
 	}
 
-	process.stdin.setRawMode(true);
-	process.stdin.resume();
-	process.stdin.setEncoding("utf8");
-
-	// Hide cursor
-	process.stdout.write("\x1B[?25l");
-
-	render(state);
-
 	return new Promise((resolve) => {
-		const cleanup = () => {
-			process.stdin.setRawMode(false);
-			process.stdin.pause();
-			process.stdin.removeAllListeners("data");
-			// Show cursor and clear screen
-			process.stdout.write("\x1B[?25h\x1B[2J\x1B[H");
-		};
-
-		process.stdin.on("data", async (key: string) => {
+		const onData = async (key: string) => {
 			const pr = result.prs[state.selectedIndex];
 
 			// Action menu mode
@@ -217,7 +225,7 @@ export async function interactiveMode(
 					state.actionMenu = null;
 					state.message = "";
 				} else if (key === "\x03") {
-					cleanup();
+					suspend();
 					resolve();
 					return;
 				} else {
@@ -229,6 +237,7 @@ export async function interactiveMode(
 							action.template,
 							pr,
 							state,
+							onData,
 						);
 						state.actionMenu = null;
 					}
@@ -241,7 +250,7 @@ export async function interactiveMode(
 			switch (key) {
 				case "q":
 				case "\x03":
-					cleanup();
+					suspend();
 					resolve();
 					return;
 
@@ -257,21 +266,39 @@ export async function interactiveMode(
 				case "o": {
 					const template = allActions.open;
 					if (template) {
-						state.message = await runAction("open", template, pr, state);
+						state.message = await runAction(
+							"open",
+							template,
+							pr,
+							state,
+							onData,
+						);
 					}
 					break;
 				}
 				case "r": {
 					const template = allActions.review;
 					if (template) {
-						state.message = await runAction("review", template, pr, state);
+						state.message = await runAction(
+							"review",
+							template,
+							pr,
+							state,
+							onData,
+						);
 					}
 					break;
 				}
 				case "n": {
 					const template = allActions.nudge;
 					if (template) {
-						state.message = await runAction("nudge", template, pr, state);
+						state.message = await runAction(
+							"nudge",
+							template,
+							pr,
+							state,
+							onData,
+						);
 					}
 					break;
 				}
@@ -305,6 +332,8 @@ export async function interactiveMode(
 			}
 
 			render(state);
-		});
+		};
+
+		resume(state, onData);
 	});
 }

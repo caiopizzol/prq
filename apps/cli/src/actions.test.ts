@@ -55,6 +55,17 @@ describe("interpolate", () => {
 		const ctx = buildContext(pr);
 		expect(ctx.days).toBe(5);
 	});
+
+	test("replaces category", () => {
+		const ctx = buildContext(pr, "needs-re-review");
+		const result = interpolate("script.sh {number} {category}", ctx);
+		expect(result).toBe("script.sh 42 needs-re-review");
+	});
+
+	test("category defaults to empty string", () => {
+		const ctx = buildContext(pr);
+		expect(ctx.category).toBe("");
+	});
 });
 
 describe("getAction", () => {

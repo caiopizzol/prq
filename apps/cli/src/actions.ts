@@ -11,6 +11,7 @@ export interface ActionContext {
 	title: string;
 	author: string;
 	days: number;
+	category: string;
 }
 
 const DEFAULT_ACTIONS: Record<string, string> = {
@@ -28,7 +29,7 @@ export function listActions(config: Config): Record<string, string> {
 	return { ...DEFAULT_ACTIONS, ...config.actions };
 }
 
-export function buildContext(pr: ResolvedPR): ActionContext {
+export function buildContext(pr: ResolvedPR, category = ""): ActionContext {
 	const days = Math.floor(
 		(Date.now() - new Date(pr.updatedAt || Date.now()).getTime()) / 86_400_000,
 	);
@@ -41,6 +42,7 @@ export function buildContext(pr: ResolvedPR): ActionContext {
 		title: pr.title,
 		author: pr.author,
 		days,
+		category,
 	};
 }
 

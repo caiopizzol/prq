@@ -95,19 +95,21 @@ prq skill --global   # install globally
 
 ## Pluggable Actions
 
-PRQ doesn't force a workflow. Every action is a configurable shell command template. Override the defaults or add your own in `.prqrc.json`:
+PRQ doesn't force a workflow. Every action is a configurable shell command template — inline commands or scripts. Override the defaults or add your own in `.prqrc.json`.
+
+Actions run with full terminal control. When you trigger an action, prq suspends its TUI, the command takes over the screen (interactive tools like Claude Code work as normal), and prq resumes when the command exits.
 
 ### Use Claude Code for reviews
 
 ```json
 {
   "actions": {
-    "review": "claude -p '/review {url}'"
+    "review": "claude '/review {url}'"
   }
 }
 ```
 
-Now `prq review 482` dispatches to Claude Code.
+Now `prq review 482` opens an interactive Claude Code session.
 
 ### Use Codex for reviews
 
@@ -118,6 +120,18 @@ Now `prq review 482` dispatches to Claude Code.
   }
 }
 ```
+
+### Use a script for complex workflows
+
+```json
+{
+  "actions": {
+    "review": "./scripts/review.sh {number} {url}"
+  }
+}
+```
+
+The script handles its own logic — session management, resuming, branching, whatever you need.
 
 ### Use gh CLI to checkout
 
@@ -143,9 +157,11 @@ With no config, `prq review` opens the files changed tab and `prq open` opens th
 | `{number}` | `482` |
 | `{owner}` | `org` |
 | `{repo}` | `repo` |
+| `{fullRepo}` | `org/repo` |
 | `{title}` | `fix: handle edge case` |
 | `{author}` | `alice` |
 | `{days}` | `5` |
+| `{category}` | `needs-re-review` |
 
 ## Agent & Automation
 
@@ -196,7 +212,7 @@ Full example:
   "repos": ["org/repo1", "org/repo2"],
   "staleDays": 5,
   "actions": {
-    "review": "claude -p '/review {url}'",
+    "review": "claude '/review {url}'",
     "checkout": "gh pr checkout {number} --repo {owner}/{repo}",
     "approve": "gh pr review {number} --repo {owner}/{repo} --approve"
   }

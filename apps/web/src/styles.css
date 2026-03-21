@@ -50,9 +50,50 @@ hr {
 	margin: 0;
 }
 
+/* ── Banner ── */
+.banner {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	font-family: var(--mono);
+	font-size: 12px;
+	color: var(--mid);
+	text-decoration: none;
+	padding: 6px 14px;
+	border: 1px solid var(--border);
+	border-radius: 100px;
+	margin-top: 48px;
+	transition: border-color 0.2s;
+}
+
+.banner:hover {
+	border-color: var(--dim);
+}
+
+.banner-tag {
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+	color: var(--accent);
+}
+
+.banner-text {
+	color: var(--dim);
+}
+
+.banner-arrow {
+	color: var(--dim);
+	transition: color 0.2s;
+}
+
+.banner:hover .banner-arrow {
+	color: var(--accent);
+}
+
 /* ── Hero ── */
 .hero {
-	padding: 180px 0 48px;
+	padding: 80px 0 48px;
 }
 
 .hero-logo {

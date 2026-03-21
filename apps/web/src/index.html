@@ -26,6 +26,12 @@ for (const [tag, attrs] of favicons) {
 <body>
 
 <div class="page">
+  <a class="banner" href="https://github.com/caiopizzol/prq/releases">
+    <span class="banner-tag">New</span>
+    <span class="banner-text">Interactive mode, actions menu, and script-based workflows</span>
+    <span class="banner-arrow">&rarr;</span>
+  </a>
+
   <section class="hero">
     <div class="hero-logo">prq<span>.</span></div>
     <div class="hero-tagline">One command. Zero noise.</div>
@@ -111,7 +117,7 @@ for (const [tag, attrs] of favicons) {
     <div class="config-examples">
       <div class="config-example">
         <div class="config-example-label">Claude Code</div>
-        <div class="config-example-value">"review": "<span class="config-value">claude -p '/review {url}'</span>"</div>
+        <div class="config-example-value">"review": "<span class="config-value">claude '/review {url}'</span>"</div>
       </div>
       <div class="config-example">
         <div class="config-example-label">Codex</div>
@@ -120,6 +126,10 @@ for (const [tag, attrs] of favicons) {
       <div class="config-example">
         <div class="config-example-label">gh CLI</div>
         <div class="config-example-value">"checkout": "<span class="config-value">gh pr checkout {number}</span>"</div>
+      </div>
+      <div class="config-example">
+        <div class="config-example-label">Your script</div>
+        <div class="config-example-value">"review": "<span class="config-value">./scripts/review.sh {number}</span>"</div>
       </div>
       <div class="config-example">
         <div class="config-example-label">No config</div>
