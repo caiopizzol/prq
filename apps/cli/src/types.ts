@@ -1,4 +1,5 @@
 export type PRCategory =
+	| "in-progress"
 	| "needs-re-review"
 	| "requested"
 	| "stale"

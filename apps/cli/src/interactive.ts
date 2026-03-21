@@ -7,12 +7,18 @@ import {
 } from "./actions.js";
 import type { Config } from "./config.js";
 import type { ResolvedPR } from "./identifier.js";
+import { applyInProgress, toggleInProgress } from "./state.js";
 import type { CategorizedPR, PRCategory, StatusResult } from "./types.js";
 
 const CATEGORY_CONFIG: Record<
 	PRCategory,
 	{ icon: string; label: string; color: (s: string) => string }
 > = {
+	"in-progress": {
+		icon: "▸",
+		label: "In Progress",
+		color: chalk.cyan,
+	},
 	"needs-re-review": {
 		icon: "◆",
 		label: "Needs Re-review",
@@ -28,6 +34,7 @@ const CATEGORY_CONFIG: Record<
 };
 
 const CATEGORY_ORDER: PRCategory[] = [
+	"in-progress",
 	"needs-re-review",
 	"requested",
 	"stale",
@@ -49,6 +56,7 @@ function toResolvedPR(pr: CategorizedPR): ResolvedPR {
 
 interface RenderState {
 	result: StatusResult;
+	sourcePrs: CategorizedPR[];
 	selectedIndex: number;
 	message: string;
 	actionMenu: { name: string; template: string }[] | null;
@@ -129,9 +137,11 @@ function render(state: RenderState) {
 		lines.push(` ${chalk.dim("1-9")} run action  ${chalk.white("q")} back`);
 	} else {
 		// Normal action bar
+		const pr = result.prs[selectedIndex];
+		const sLabel = pr?.category === "in-progress" ? "stop" : "start";
 		lines.push("");
 		lines.push(
-			` ${chalk.dim("↑↓")} navigate  ${chalk.white("r")} review  ${chalk.white("o")} open  ${chalk.white("n")} nudge  ${chalk.white("c")} copy url  ${chalk.white("a")} actions  ${chalk.white("q")} quit`,
+			` ${chalk.dim("↑↓")} navigate  ${chalk.white("r")} review  ${chalk.white("o")} open  ${chalk.white("n")} nudge  ${chalk.white("s")} ${sLabel}  ${chalk.white("c")} copy url  ${chalk.white("a")} actions  ${chalk.white("q")} quit`,
 		);
 	}
 
@@ -190,6 +200,7 @@ async function runAction(
 
 export async function interactiveMode(
 	result: StatusResult,
+	sourcePrs: CategorizedPR[],
 	config: Config,
 ): Promise<void> {
 	if (result.prs.length === 0) {
@@ -202,6 +213,7 @@ export async function interactiveMode(
 
 	const state: RenderState = {
 		result,
+		sourcePrs,
 		selectedIndex: 0,
 		message: "",
 		actionMenu: null,
@@ -316,6 +328,21 @@ export async function interactiveMode(
 					} catch {
 						state.message = chalk.dim(url);
 					}
+					break;
+				}
+				case "s": {
+					const started = toggleInProgress(pr);
+					state.result = {
+						...state.result,
+						prs: applyInProgress(state.sourcePrs),
+					};
+					const newTotal = state.result.prs.length;
+					if (state.selectedIndex >= newTotal) {
+						state.selectedIndex = Math.max(0, newTotal - 1);
+					}
+					state.message = started
+						? chalk.cyan(`started: ${pr.repo}#${pr.number}`)
+						: chalk.dim(`unmarked: ${pr.repo}#${pr.number}`);
 					break;
 				}
 				case "a": {

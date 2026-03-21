@@ -5,6 +5,11 @@ const CATEGORY_CONFIG: Record<
 	PRCategory,
 	{ icon: string; label: string; color: (s: string) => string }
 > = {
+	"in-progress": {
+		icon: "▸",
+		label: "In Progress",
+		color: chalk.cyan,
+	},
 	"needs-re-review": {
 		icon: "◆",
 		label: "Needs Re-review",
@@ -20,6 +25,7 @@ const CATEGORY_CONFIG: Record<
 };
 
 const CATEGORY_ORDER: PRCategory[] = [
+	"in-progress",
 	"needs-re-review",
 	"requested",
 	"stale",

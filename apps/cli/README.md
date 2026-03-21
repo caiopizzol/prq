@@ -40,6 +40,8 @@ Shows PRs needing your attention in four categories:
 - **○ Stale** — no activity for N days
 - **◇ Your PRs Waiting** — waiting on someone else
 
+PRs you mark as started appear in a separate **▸ In Progress** group at the top.
+
 ```bash
 prq                                        # interactive mode (default)
 prq status --repos org/repo1 org/repo2     # specific repos
@@ -58,6 +60,7 @@ Interactive mode is the default when running in a terminal. Navigate your queue 
 | r | Review — open files changed |
 | o | Open — open PR in browser |
 | n | Nudge — post a comment |
+| s | Start/Stop — mark as in progress |
 | c | Copy URL to clipboard |
 | a | Actions — open menu with all actions |
 | q | Quit |

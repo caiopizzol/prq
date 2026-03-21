@@ -69,19 +69,22 @@ describe("formatStatus", () => {
 			user: "testuser",
 			timestamp: new Date().toISOString(),
 			prs: [
-				makeCategorizedPR({ category: "waiting-on-others", number: 4 }),
-				makeCategorizedPR({ category: "needs-re-review", number: 1 }),
-				makeCategorizedPR({ category: "stale", number: 3 }),
-				makeCategorizedPR({ category: "requested", number: 2 }),
+				makeCategorizedPR({ category: "waiting-on-others", number: 5 }),
+				makeCategorizedPR({ category: "needs-re-review", number: 2 }),
+				makeCategorizedPR({ category: "in-progress", number: 1 }),
+				makeCategorizedPR({ category: "stale", number: 4 }),
+				makeCategorizedPR({ category: "requested", number: 3 }),
 			],
 		};
 
 		const output = formatStatus(result);
+		const inProgressIdx = output.indexOf("In Progress");
 		const reReviewIdx = output.indexOf("Needs Re-review");
 		const requestedIdx = output.indexOf("Requested Reviews");
 		const staleIdx = output.indexOf("Stale");
 		const waitingIdx = output.indexOf("Your PRs Waiting");
 
+		expect(inProgressIdx).toBeLessThan(reReviewIdx);
 		expect(reReviewIdx).toBeLessThan(requestedIdx);
 		expect(requestedIdx).toBeLessThan(staleIdx);
 		expect(staleIdx).toBeLessThan(waitingIdx);

@@ -9,6 +9,7 @@ import {
 } from "../github/queries.js";
 import { interactiveMode } from "../interactive.js";
 import { formatStatus } from "../output.js";
+import { applyInProgress } from "../state.js";
 import type { StatusResult } from "../types.js";
 
 export async function statusCommand(
@@ -35,12 +36,15 @@ export async function statusCommand(
 	const reviewedPRs = await enrichAllWithReviews(reviewedRaw, user);
 
 	// Phase 3: Categorize
-	const prs = categorize(
+	const categorized = categorize(
 		reviewedPRs,
 		requestedPRs,
 		authoredPRs,
 		config.staleDays,
 	);
+
+	// Phase 4: Apply local in-progress state
+	const prs = applyInProgress(categorized);
 
 	const result: StatusResult = {
 		user,
@@ -51,7 +55,7 @@ export async function statusCommand(
 	if (json) {
 		process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 	} else if (interactive && process.stdin.isTTY) {
-		await interactiveMode(result, config);
+		await interactiveMode(result, categorized, config);
 	} else {
 		process.stdout.write(formatStatus(result));
 	}
