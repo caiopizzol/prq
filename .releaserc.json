@@ -2,6 +2,14 @@
 	"branches": ["main"],
 	"plugins": [
 		"@semantic-release/commit-analyzer",
+		[
+			"semantic-release-ai-notes",
+			{
+				"model": "claude-sonnet-4-6",
+				"style": "concise",
+				"brandFile": "brand.md"
+			}
+		],
 		["@semantic-release/npm", { "access": "public", "pkgRoot": "apps/cli" }],
 		"@semantic-release/github",
 		[
