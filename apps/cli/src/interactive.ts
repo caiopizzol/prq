@@ -2,8 +2,8 @@ import chalk from "chalk";
 import {
 	buildContext,
 	executeCommand,
-	getAction,
 	interpolate,
+	listActions,
 } from "./actions.js";
 import type { Config } from "./config.js";
 import type { ResolvedPR } from "./identifier.js";
@@ -47,7 +47,16 @@ function toResolvedPR(pr: CategorizedPR): ResolvedPR {
 	};
 }
 
-function render(result: StatusResult, selectedIndex: number, message: string) {
+interface RenderState {
+	result: StatusResult;
+	selectedIndex: number;
+	message: string;
+	actionMenu: { name: string; template: string }[] | null;
+}
+
+function render(state: RenderState) {
+	const { result, selectedIndex, message, actionMenu } = state;
+
 	// Clear screen and move cursor to top
 	process.stdout.write("\x1B[2J\x1B[H");
 
@@ -107,11 +116,24 @@ function render(result: StatusResult, selectedIndex: number, message: string) {
 	lines.push("");
 	lines.push(chalk.dim(` ${"─".repeat(50)}`));
 
-	// Action bar
-	lines.push("");
-	lines.push(
-		` ${chalk.dim("↑↓")} navigate  ${chalk.white("r")} review  ${chalk.white("o")} open  ${chalk.white("n")} nudge  ${chalk.white("c")} copy url  ${chalk.white("q")} quit`,
-	);
+	if (actionMenu) {
+		// Action menu overlay
+		const pr = result.prs[selectedIndex];
+		lines.push("");
+		lines.push(` ${chalk.bold("Actions")} for ${chalk.white(`#${pr.number}`)}`);
+		lines.push("");
+		for (let i = 0; i < actionMenu.length; i++) {
+			lines.push(`   ${chalk.white(String(i + 1))}. ${actionMenu[i].name}`);
+		}
+		lines.push("");
+		lines.push(` ${chalk.dim("1-9")} run action  ${chalk.white("q")} back`);
+	} else {
+		// Normal action bar
+		lines.push("");
+		lines.push(
+			` ${chalk.dim("↑↓")} navigate  ${chalk.white("r")} review  ${chalk.white("o")} open  ${chalk.white("n")} nudge  ${chalk.white("c")} copy url  ${chalk.white("a")} actions  ${chalk.white("q")} quit`,
+		);
+	}
 
 	// Message line
 	if (message) {
@@ -120,6 +142,25 @@ function render(result: StatusResult, selectedIndex: number, message: string) {
 	}
 
 	process.stdout.write(lines.join("\n"));
+}
+
+async function runAction(
+	actionName: string,
+	template: string,
+	pr: CategorizedPR,
+	state: RenderState,
+): Promise<string> {
+	const cmd = interpolate(template, buildContext(toResolvedPR(pr)));
+	state.message = chalk.dim(
+		`running ${actionName} on ${pr.repo}#${pr.number}...`,
+	);
+	render(state);
+	try {
+		await executeCommand(cmd);
+		return chalk.green(`${actionName}: ${pr.repo}#${pr.number}`);
+	} catch {
+		return chalk.red(`${actionName} failed`);
+	}
 }
 
 export async function interactiveMode(
@@ -131,13 +172,18 @@ export async function interactiveMode(
 		return;
 	}
 
-	let selectedIndex = 0;
-	let message = "";
 	const total = result.prs.length;
+	const allActions = listActions(config);
+
+	const state: RenderState = {
+		result,
+		selectedIndex: 0,
+		message: "",
+		actionMenu: null,
+	};
 
 	// Enable raw mode for keypress capture
 	if (!process.stdin.isTTY) {
-		// Not a TTY — fall back to non-interactive
 		process.stdout.write(
 			"Interactive mode requires a terminal. Use prq status instead.\n",
 		);
@@ -151,7 +197,7 @@ export async function interactiveMode(
 	// Hide cursor
 	process.stdout.write("\x1B[?25l");
 
-	render(result, selectedIndex, message);
+	render(state);
 
 	return new Promise((resolve) => {
 		const cleanup = () => {
@@ -163,78 +209,73 @@ export async function interactiveMode(
 		};
 
 		process.stdin.on("data", async (key: string) => {
-			const pr = result.prs[selectedIndex];
+			const pr = result.prs[state.selectedIndex];
 
+			// Action menu mode
+			if (state.actionMenu) {
+				if (key === "q" || key === "\x1B" || key === "a") {
+					state.actionMenu = null;
+					state.message = "";
+				} else if (key === "\x03") {
+					cleanup();
+					resolve();
+					return;
+				} else {
+					const idx = parseInt(key, 10);
+					if (idx >= 1 && idx <= state.actionMenu.length) {
+						const action = state.actionMenu[idx - 1];
+						state.message = await runAction(
+							action.name,
+							action.template,
+							pr,
+							state,
+						);
+						state.actionMenu = null;
+					}
+				}
+				render(state);
+				return;
+			}
+
+			// Normal mode
 			switch (key) {
-				// Quit
 				case "q":
-				case "\x03": // Ctrl+C
+				case "\x03":
 					cleanup();
 					resolve();
 					return;
 
-				// Navigate
-				case "\x1B[A": // Up arrow
-					selectedIndex = Math.max(0, selectedIndex - 1);
-					message = "";
+				case "\x1B[A":
+					state.selectedIndex = Math.max(0, state.selectedIndex - 1);
+					state.message = "";
 					break;
-				case "\x1B[B": // Down arrow
-					selectedIndex = Math.min(total - 1, selectedIndex + 1);
-					message = "";
+				case "\x1B[B":
+					state.selectedIndex = Math.min(total - 1, state.selectedIndex + 1);
+					state.message = "";
 					break;
 
-				// Actions
 				case "o": {
-					const template = getAction("open", config);
+					const template = allActions.open;
 					if (template) {
-						const cmd = interpolate(template, buildContext(toResolvedPR(pr)));
-						message = chalk.dim(`opening ${pr.repo}#${pr.number}...`);
-						render(result, selectedIndex, message);
-						try {
-							await executeCommand(cmd);
-							message = chalk.green(`opened ${pr.repo}#${pr.number}`);
-						} catch {
-							message = chalk.red("failed to open");
-						}
+						state.message = await runAction("open", template, pr, state);
 					}
 					break;
 				}
 				case "r": {
-					const template = getAction("review", config);
+					const template = allActions.review;
 					if (template) {
-						const cmd = interpolate(template, buildContext(toResolvedPR(pr)));
-						message = chalk.dim(
-							`opening review for ${pr.repo}#${pr.number}...`,
-						);
-						render(result, selectedIndex, message);
-						try {
-							await executeCommand(cmd);
-							message = chalk.green(
-								`opened review for ${pr.repo}#${pr.number}`,
-							);
-						} catch {
-							message = chalk.red("failed to open review");
-						}
+						state.message = await runAction("review", template, pr, state);
 					}
 					break;
 				}
 				case "n": {
-					const template = getAction("nudge", config);
+					const template = allActions.nudge;
 					if (template) {
-						const cmd = interpolate(template, buildContext(toResolvedPR(pr)));
-						message = chalk.dim(`nudging ${pr.repo}#${pr.number}...`);
-						render(result, selectedIndex, message);
-						try {
-							await executeCommand(cmd);
-							message = chalk.green(`nudged ${pr.repo}#${pr.number}`);
-						} catch {
-							message = chalk.red("failed to nudge");
-						}
+						state.message = await runAction("nudge", template, pr, state);
 					}
 					break;
 				}
 				case "c": {
-					// Copy URL to clipboard
 					const url = pr.url;
 					try {
 						const proc =
@@ -244,17 +285,26 @@ export async function interactiveMode(
 									? "xclip -selection clipboard"
 									: "clip";
 						await executeCommand(`echo "${url}" | ${proc}`);
-						message = chalk.green("url copied");
+						state.message = chalk.green("url copied");
 					} catch {
-						message = chalk.dim(url);
+						state.message = chalk.dim(url);
 					}
+					break;
+				}
+				case "a": {
+					const entries = Object.entries(allActions);
+					state.actionMenu = entries.map(([name, template]) => ({
+						name,
+						template,
+					}));
+					state.message = "";
 					break;
 				}
 				default:
 					break;
 			}
 
-			render(result, selectedIndex, message);
+			render(state);
 		});
 	});
 }

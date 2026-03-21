@@ -17,11 +17,11 @@ Requires [GitHub CLI](https://cli.github.com/) (`gh`) to be authenticated.
 ## Quick Start
 
 ```bash
-# See your review queue
+# See your review queue (interactive by default)
 prq
 
-# Interactive mode
-prq -i
+# Non-interactive / plain text
+prq --no-interactive
 
 # Act on a PR
 prq review 482
@@ -33,20 +33,22 @@ prq nudge 482
 
 ### `prq status` (default)
 
-Shows PRs needing your attention in four categories:
+Shows PRs needing your attention in four categories. Interactive mode is the default when running in a terminal.
 
 ```bash
-prq                                        # all repos
+prq                                        # interactive mode (default)
 prq status --repos org/repo1 org/repo2     # specific repos
 prq status --json                          # machine-readable
-prq status -i                              # interactive mode
+prq --no-interactive                       # plain text output
 ```
 
-### Interactive Mode (`prq -i`)
+### Interactive Mode (default)
 
 Navigate your queue with keyboard shortcuts:
 
-- **↑↓** navigate  **r** review  **o** open  **n** nudge  **c** copy url  **q** quit
+- **↑↓** navigate  **r** review  **o** open  **n** nudge  **c** copy url  **a** actions  **q** quit
+
+Press **a** to open the actions menu — all actions (built-in and custom) are listed and accessible by number.
 
 ### `prq open/review/nudge <identifier>`
 
