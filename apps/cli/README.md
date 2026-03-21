@@ -4,7 +4,7 @@
 
 PR Queue — see what code reviews need your attention.
 
-A CLI tool that shows you a categorized view of PRs that need action — then lets you act on them with whatever tools you already use. PRQ is the queue. You bring the workflow.
+Four categories. What needs re-review, what's requested, what's stale, what's waiting on others. `prq` is the queue. You bring the workflow.
 
 ## Install
 
@@ -93,9 +93,9 @@ prq skill            # install in current project
 prq skill --global   # install globally
 ```
 
-## Pluggable Actions
+## Custom Actions
 
-PRQ doesn't force a workflow. Every action is a configurable shell command template — inline commands or scripts. Override the defaults or add your own in `.prqrc.json`.
+`prq` doesn't force a workflow. Every action is a configurable shell command template — inline commands or scripts. Override the defaults or add your own in `.prqrc.json`.
 
 Actions run with full terminal control. When you trigger an action, prq suspends its TUI, the command takes over the screen (interactive tools like Claude Code work as normal), and prq resumes when the command exits.
 
@@ -163,9 +163,9 @@ With no config, `prq review` opens the files changed tab and `prq open` opens th
 | `{days}` | `5` |
 | `{category}` | `needs-re-review` |
 
-## Agent & Automation
+## Scripting
 
-PRQ is fully scriptable with `--json` output and `--yes` flags:
+`prq` is fully scriptable with `--json` output and `--yes` flags:
 
 ```bash
 # Agent reads the queue
@@ -181,7 +181,7 @@ prq status --json | claude -p "Review needs-re-review PRs older than 7 days"
 
 ### Claude Code Skill
 
-Install the `/prq` skill to use PRQ inside Claude Code sessions:
+Install the `/prq` skill to use `prq` inside Claude Code sessions:
 
 ```bash
 prq skill --global

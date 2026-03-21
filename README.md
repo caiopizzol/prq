@@ -106,8 +106,7 @@ prq/
 ├── apps/
 │   ├── cli/     # CLI tool (published to npm as prq-cli)
 │   └── web/     # Landing page
-├── brand/       # Design assets
-└── .brand       # Brand strategy
+└── brand.md     # Brand strategy
 ```
 
 ## Development

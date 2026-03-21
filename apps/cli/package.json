@@ -37,6 +37,6 @@
 		"type": "git",
 		"url": "git+https://github.com/caiopizzol/prq.git"
 	},
-	"homepage": "https://github.com/caiopizzol/prq",
+	"homepage": "https://prq.sh",
 	"bugs": "https://github.com/caiopizzol/prq/issues"
 }
