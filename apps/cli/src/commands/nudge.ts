@@ -3,9 +3,21 @@ import chalk from "chalk";
 import type { Config } from "../config.js";
 import { getClient } from "../github/client.js";
 import { resolveIdentifier } from "../identifier.js";
+import { getNudgedAt, markNudged } from "../state.js";
 
-function ask(rl: readline.Interface, question: string): Promise<string> {
-	return new Promise((resolve) => rl.question(question, resolve));
+async function confirm(question: string): Promise<boolean> {
+	const rl = readline.createInterface({
+		input: process.stdin,
+		output: process.stdout,
+	});
+	try {
+		const answer = await new Promise<string>((resolve) =>
+			rl.question(question, resolve),
+		);
+		return answer.toLowerCase() === "y";
+	} finally {
+		rl.close();
+	}
 }
 
 function daysAgo(dateStr: string): number {
@@ -26,12 +38,27 @@ export async function nudgeCommand(
 		pull_number: pr.number,
 	});
 
+	const repo = `${pr.owner}/${pr.repo}`;
+	const label = `${repo}#${pr.number}`;
+	const nudgedAt = getNudgedAt({ repo, number: pr.number });
+
+	if (nudgedAt && !options.yes) {
+		const ago = daysAgo(nudgedAt);
+		const agoText =
+			ago === 0 ? "today" : `${ago} day${ago === 1 ? "" : "s"} ago`;
+		console.log();
+		console.log(chalk.yellow(`  This PR was already nudged ${agoText}.`));
+
+		if (!(await confirm(chalk.yellow("  Nudge again? (y/N) ")))) {
+			console.log(chalk.dim("  Cancelled."));
+			return;
+		}
+	}
+
 	const days = daysAgo(data.updated_at);
 	const message =
 		options.message ??
 		`Hey @${data.user?.login ?? pr.author}, is this PR still active? It's been ${days} day${days === 1 ? "" : "s"} since the last activity.`;
-
-	const label = `${pr.owner}/${pr.repo}#${pr.number}`;
 
 	if (!options.yes) {
 		console.log();
@@ -41,18 +68,9 @@ export async function nudgeCommand(
 		console.log(`  ${chalk.dim("Message:")} ${message}`);
 		console.log();
 
-		const rl = readline.createInterface({
-			input: process.stdin,
-			output: process.stdout,
-		});
-		try {
-			const answer = await ask(rl, chalk.yellow("  Post this comment? (y/n) "));
-			if (answer.toLowerCase() !== "y") {
-				console.log(chalk.dim("  Cancelled."));
-				return;
-			}
-		} finally {
-			rl.close();
+		if (!(await confirm(chalk.yellow("  Post this comment? (y/n) ")))) {
+			console.log(chalk.dim("  Cancelled."));
+			return;
 		}
 	}
 
@@ -63,5 +81,6 @@ export async function nudgeCommand(
 		body: message,
 	});
 
+	markNudged({ repo, number: pr.number });
 	console.log(chalk.green(`  Comment posted on ${label}`));
 }

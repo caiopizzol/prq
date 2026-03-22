@@ -4,7 +4,7 @@
 
 PR Queue — one command, zero noise.
 
-Four categories. What needs re-review, what's requested, what's stale, what's waiting on others. Mark PRs as in progress to track what you've started. Run `prq`, see your queue, act on it, move on.
+Four categories. What needs re-review, what's requested, what's stale, what's waiting on others. Mark PRs as in progress to track what you've started. Nudge stale PRs without double-pinging. Run `prq`, see your queue, act on it, move on.
 
 ## Install
 
@@ -57,7 +57,7 @@ Act on PRs by number, `org/repo#number`, or full URL:
 ```bash
 prq open 482                               # open in browser
 prq review 482                             # open files changed
-prq nudge 482                              # post a comment
+prq nudge 482                              # post a comment (warns if already nudged)
 prq nudge 482 --yes --message "Update?"    # skip confirmation
 ```
 

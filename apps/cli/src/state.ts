@@ -7,52 +7,105 @@ const STATE_DIR = path.join(
 	".config",
 	"prq",
 );
-const STATE_PATH = path.join(STATE_DIR, "in-progress.json");
+const STATE_PATH = path.join(STATE_DIR, "state.json");
+
+interface PRState {
+	inProgress?: boolean;
+	nudgedAt?: string;
+}
+
+type StateData = Record<string, PRState>;
 
 function prKey(pr: { repo: string; number: number }): string {
 	return `${pr.repo}#${pr.number}`;
 }
 
-export function loadInProgress(): Set<string> {
+function load(): StateData {
 	try {
 		const data = JSON.parse(fs.readFileSync(STATE_PATH, "utf8"));
-		return new Set(Array.isArray(data) ? data : []);
+		return typeof data === "object" && data !== null && !Array.isArray(data)
+			? data
+			: {};
 	} catch {
-		return new Set();
+		return {};
 	}
 }
 
-function save(keys: Set<string>): void {
+function save(state: StateData): void {
 	fs.mkdirSync(STATE_DIR, { recursive: true });
-	fs.writeFileSync(STATE_PATH, JSON.stringify(Array.from(keys), null, 2));
+	// Remove empty entries
+	const clean: StateData = {};
+	for (const [k, v] of Object.entries(state)) {
+		if (v.inProgress || v.nudgedAt) clean[k] = v;
+	}
+	fs.writeFileSync(STATE_PATH, JSON.stringify(clean, null, 2));
+}
+
+// --- In-progress ---
+
+export function loadInProgress(): Set<string> {
+	const state = load();
+	return new Set(
+		Object.entries(state)
+			.filter(([, v]) => v.inProgress)
+			.map(([k]) => k),
+	);
 }
 
 export function toggleInProgress(pr: CategorizedPR): boolean {
-	const keys = loadInProgress();
+	const state = load();
 	const k = prKey(pr);
-	if (keys.has(k)) {
-		keys.delete(k);
-		save(keys);
-		return false;
+	const entry = state[k] ?? {};
+	if (entry.inProgress) {
+		delete entry.inProgress;
+		state[k] = entry;
+	} else {
+		state[k] = { ...entry, inProgress: true };
 	}
-	keys.add(k);
-	save(keys);
-	return true;
+	save(state);
+	return !!state[k]?.inProgress;
 }
 
 export function applyInProgress(prs: CategorizedPR[]): CategorizedPR[] {
-	const keys = loadInProgress();
-	if (keys.size === 0) return prs;
+	const state = load();
+	const inProgressKeys = new Set(
+		Object.entries(state)
+			.filter(([, v]) => v.inProgress)
+			.map(([k]) => k),
+	);
+	if (inProgressKeys.size === 0) return prs;
 
 	// Clean up keys for PRs no longer in the queue (merged/closed)
 	const activeKeys = new Set(prs.map(prKey));
-	const staleKeys = Array.from(keys).filter((k) => !activeKeys.has(k));
-	if (staleKeys.length > 0) {
-		for (const k of staleKeys) keys.delete(k);
-		save(keys);
+	let changed = false;
+	for (const k of Array.from(inProgressKeys)) {
+		if (!activeKeys.has(k)) {
+			delete state[k]?.inProgress;
+			changed = true;
+		}
 	}
+	if (changed) save(state);
 
 	return prs.map((pr) =>
-		keys.has(prKey(pr)) ? { ...pr, category: "in-progress" as const } : pr,
+		inProgressKeys.has(prKey(pr))
+			? { ...pr, category: "in-progress" as const }
+			: pr,
 	);
+}
+
+// --- Nudge ---
+
+export function getNudgedAt(pr: {
+	repo: string;
+	number: number;
+}): string | null {
+	const state = load();
+	return state[prKey(pr)]?.nudgedAt ?? null;
+}
+
+export function markNudged(pr: { repo: string; number: number }): void {
+	const state = load();
+	const k = prKey(pr);
+	state[k] = { ...state[k], nudgedAt: new Date().toISOString() };
+	save(state);
 }
