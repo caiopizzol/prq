@@ -5,41 +5,11 @@ import {
 	interpolate,
 	listActions,
 } from "./actions.js";
+import { CATEGORY_CONFIG, CATEGORY_ORDER } from "./categories.js";
 import type { Config } from "./config.js";
 import type { ResolvedPR } from "./identifier.js";
 import { applyInProgress, toggleInProgress } from "./state.js";
 import type { CategorizedPR, PRCategory, StatusResult } from "./types.js";
-
-const CATEGORY_CONFIG: Record<
-	PRCategory,
-	{ icon: string; label: string; color: (s: string) => string }
-> = {
-	"in-progress": {
-		icon: "▸",
-		label: "In Progress",
-		color: chalk.cyan,
-	},
-	"needs-re-review": {
-		icon: "◆",
-		label: "Needs Re-review",
-		color: chalk.yellow,
-	},
-	requested: { icon: "●", label: "Requested Reviews", color: chalk.green },
-	stale: { icon: "○", label: "Stale", color: chalk.red },
-	"waiting-on-others": {
-		icon: "◇",
-		label: "Your PRs Waiting",
-		color: chalk.dim,
-	},
-};
-
-const CATEGORY_ORDER: PRCategory[] = [
-	"in-progress",
-	"needs-re-review",
-	"requested",
-	"stale",
-	"waiting-on-others",
-];
 
 function toResolvedPR(pr: CategorizedPR): ResolvedPR {
 	const [owner, repo] = pr.repo.split("/");

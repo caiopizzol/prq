@@ -37,12 +37,14 @@ export function createCLI(): Command {
 			"Days of inactivity to consider stale",
 			"3",
 		)
+		.option("--all", "Show all open PRs in configured repos")
 		.option("--json", "Output as JSON")
 		.option("--no-interactive", "Disable interactive mode")
 		.action(async (opts) => {
 			const config = loadConfig({
 				repos: opts.repos,
 				staleDays: opts.staleDays ? parseInt(opts.staleDays, 10) : undefined,
+				showAllOpen: opts.all || undefined,
 			});
 
 			await statusCommand(config, opts.json ?? false, opts.interactive ?? true);

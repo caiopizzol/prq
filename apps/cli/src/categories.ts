@@ -1,0 +1,39 @@
+import chalk from "chalk";
+import type { PRCategory } from "./types.js";
+
+export const CATEGORY_CONFIG: Record<
+	PRCategory,
+	{ icon: string; label: string; color: (s: string) => string }
+> = {
+	"in-progress": {
+		icon: "▸",
+		label: "In Progress",
+		color: chalk.cyan,
+	},
+	"needs-re-review": {
+		icon: "◆",
+		label: "Needs Re-review",
+		color: chalk.yellow,
+	},
+	requested: { icon: "●", label: "Requested Reviews", color: chalk.green },
+	stale: { icon: "○", label: "Stale", color: chalk.red },
+	"waiting-on-others": {
+		icon: "◇",
+		label: "Your PRs Waiting",
+		color: chalk.dim,
+	},
+	open: {
+		icon: "◦",
+		label: "All Open",
+		color: chalk.dim,
+	},
+};
+
+export const CATEGORY_ORDER: PRCategory[] = [
+	"in-progress",
+	"needs-re-review",
+	"requested",
+	"stale",
+	"waiting-on-others",
+	"open",
+];

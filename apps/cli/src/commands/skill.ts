@@ -13,6 +13,9 @@ description: PR review queue manager. Use when the user wants to check their PR 
 # Show the review queue (JSON for parsing)
 prq status --json
 
+# Show all open PRs in configured repos (not just yours)
+prq status --all --json
+
 # Open a PR in the browser
 prq open <number>
 prq open <owner/repo#number>
@@ -49,7 +52,7 @@ prq run <action> <number>
 }
 \`\`\`
 
-Categories: \`needs-re-review\`, \`requested\`, \`stale\`, \`waiting-on-others\`.
+Categories: \`needs-re-review\`, \`requested\`, \`stale\`, \`waiting-on-others\`, \`open\` (only with \`--all\`).
 
 ## Usage
 

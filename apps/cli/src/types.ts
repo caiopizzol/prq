@@ -1,6 +1,7 @@
 export type PRCategory =
 	| "in-progress"
 	| "needs-re-review"
+	| "open"
 	| "requested"
 	| "stale"
 	| "waiting-on-others";

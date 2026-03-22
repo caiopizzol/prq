@@ -28,6 +28,7 @@ describe("loadConfig", () => {
 		const config = loadConfig({});
 		expect(config.repos).toEqual([]);
 		expect(config.staleDays).toBe(3);
+		expect(config.showAllOpen).toBe(false);
 		expect(config.user).toBeUndefined();
 	});
 

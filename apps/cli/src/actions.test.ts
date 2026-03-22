@@ -70,7 +70,7 @@ describe("interpolate", () => {
 
 describe("getAction", () => {
 	test("returns default action", () => {
-		const config = { repos: [], staleDays: 3, actions: {} };
+		const config = { repos: [], staleDays: 3, showAllOpen: false, actions: {} };
 		expect(getAction("open", config)).toBe("open {url}");
 		expect(getAction("review", config)).toBe("open {url}/files");
 	});
@@ -79,6 +79,7 @@ describe("getAction", () => {
 		const config = {
 			repos: [],
 			staleDays: 3,
+			showAllOpen: false,
 			actions: { review: "claude -p '/review {url}'" },
 		};
 		expect(getAction("review", config)).toBe("claude -p '/review {url}'");
@@ -88,13 +89,14 @@ describe("getAction", () => {
 		const config = {
 			repos: [],
 			staleDays: 3,
+			showAllOpen: false,
 			actions: { checkout: "gh pr checkout {number}" },
 		};
 		expect(getAction("checkout", config)).toBe("gh pr checkout {number}");
 	});
 
 	test("returns undefined for unknown action", () => {
-		const config = { repos: [], staleDays: 3, actions: {} };
+		const config = { repos: [], staleDays: 3, showAllOpen: false, actions: {} };
 		expect(getAction("nonexistent", config)).toBeUndefined();
 	});
 });
@@ -104,6 +106,7 @@ describe("listActions", () => {
 		const config = {
 			repos: [],
 			staleDays: 3,
+			showAllOpen: false,
 			actions: { checkout: "gh pr checkout {number}" },
 		};
 		const all = listActions(config);
@@ -116,6 +119,7 @@ describe("listActions", () => {
 		const config = {
 			repos: [],
 			staleDays: 3,
+			showAllOpen: false,
 			actions: { open: "custom-open {url}" },
 		};
 		const all = listActions(config);

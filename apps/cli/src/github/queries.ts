@@ -29,6 +29,11 @@ async function searchPRs(query: string): Promise<PRBasic[]> {
 		sort: "updated",
 		order: "desc",
 	});
+	if (data.total_count > data.items.length) {
+		process.stderr.write(
+			`Warning: showing ${data.items.length} of ${data.total_count} results (sorted by most recently updated)\n`,
+		);
+	}
 	return data.items.map(parsePR);
 }
 
@@ -82,6 +87,13 @@ export async function fetchAuthoredPRs(
 	);
 
 	return enriched;
+}
+
+export async function fetchAllOpenPRs(repos: string[]): Promise<PRBasic[]> {
+	if (repos.length === 0) return [];
+	const repoFilter = buildRepoFilter(repos);
+	const query = `is:pr is:open ${repoFilter}`.trim();
+	return searchPRs(query);
 }
 
 export async function enrichWithReviews(

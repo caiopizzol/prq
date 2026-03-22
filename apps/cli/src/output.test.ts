@@ -74,6 +74,7 @@ describe("formatStatus", () => {
 				makeCategorizedPR({ category: "in-progress", number: 1 }),
 				makeCategorizedPR({ category: "stale", number: 4 }),
 				makeCategorizedPR({ category: "requested", number: 3 }),
+				makeCategorizedPR({ category: "open", number: 6 }),
 			],
 		};
 
@@ -83,11 +84,13 @@ describe("formatStatus", () => {
 		const requestedIdx = output.indexOf("Requested Reviews");
 		const staleIdx = output.indexOf("Stale");
 		const waitingIdx = output.indexOf("Your PRs Waiting");
+		const openIdx = output.indexOf("All Open");
 
 		expect(inProgressIdx).toBeLessThan(reReviewIdx);
 		expect(reReviewIdx).toBeLessThan(requestedIdx);
 		expect(requestedIdx).toBeLessThan(staleIdx);
 		expect(staleIdx).toBeLessThan(waitingIdx);
+		expect(waitingIdx).toBeLessThan(openIdx);
 	});
 
 	test("skips empty categories", () => {

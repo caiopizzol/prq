@@ -1,36 +1,6 @@
 import chalk from "chalk";
+import { CATEGORY_CONFIG, CATEGORY_ORDER } from "./categories.js";
 import type { CategorizedPR, PRCategory, StatusResult } from "./types.js";
-
-const CATEGORY_CONFIG: Record<
-	PRCategory,
-	{ icon: string; label: string; color: (s: string) => string }
-> = {
-	"in-progress": {
-		icon: "▸",
-		label: "In Progress",
-		color: chalk.cyan,
-	},
-	"needs-re-review": {
-		icon: "◆",
-		label: "Needs Re-review",
-		color: chalk.yellow,
-	},
-	requested: { icon: "●", label: "Requested Reviews", color: chalk.green },
-	stale: { icon: "○", label: "Stale", color: chalk.red },
-	"waiting-on-others": {
-		icon: "◇",
-		label: "Your PRs Waiting",
-		color: chalk.dim,
-	},
-};
-
-const CATEGORY_ORDER: PRCategory[] = [
-	"in-progress",
-	"needs-re-review",
-	"requested",
-	"stale",
-	"waiting-on-others",
-];
 
 function formatPR(pr: CategorizedPR): string {
 	const draft = pr.isDraft ? chalk.dim(" [draft]") : "";
@@ -84,8 +54,9 @@ export function formatStatus(result: StatusResult): string {
 	lines.push("");
 	lines.push(` ${separator}`);
 
-	const total = result.prs.length;
-	const repos = new Set(result.prs.map((pr) => pr.repo)).size;
+	const actionable = result.prs.filter((pr) => pr.category !== "open");
+	const total = actionable.length;
+	const repos = new Set(actionable.map((pr) => pr.repo)).size;
 	if (total > 0) {
 		lines.push(
 			chalk.dim(

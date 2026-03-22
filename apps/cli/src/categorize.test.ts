@@ -32,7 +32,7 @@ function makeReviewedPR(overrides: Partial<PRWithReviews> = {}): PRWithReviews {
 
 describe("categorize", () => {
 	test("returns empty array when no PRs", () => {
-		const result = categorize([], [], [], 3);
+		const result = categorize([], [], [], 3, []);
 		expect(result).toEqual([]);
 	});
 
@@ -45,7 +45,7 @@ describe("categorize", () => {
 			}),
 		];
 
-		const result = categorize(reviewed, [], [], 3);
+		const result = categorize(reviewed, [], [], 3, []);
 		expect(result).toHaveLength(1);
 		expect(result[0].category).toBe("needs-re-review");
 		expect(result[0].number).toBe(10);
@@ -59,7 +59,7 @@ describe("categorize", () => {
 			}),
 		];
 
-		const result = categorize(reviewed, [], [], 3);
+		const result = categorize(reviewed, [], [], 3, []);
 		const reReview = result.filter((r) => r.category === "needs-re-review");
 		expect(reReview).toHaveLength(0);
 	});
@@ -67,7 +67,7 @@ describe("categorize", () => {
 	test("categorizes requested reviews", () => {
 		const requested = [makePR({ number: 20, author: "bob" })];
 
-		const result = categorize([], requested, [], 3);
+		const result = categorize([], requested, [], 3, []);
 		expect(result).toHaveLength(1);
 		expect(result[0].category).toBe("requested");
 		expect(result[0].number).toBe(20);
@@ -81,7 +81,7 @@ describe("categorize", () => {
 		});
 		const requested = [makePR({ number: 30 })];
 
-		const result = categorize([pr], requested, [], 3);
+		const result = categorize([pr], requested, [], 3, []);
 		expect(result).toHaveLength(1);
 		expect(result[0].category).toBe("needs-re-review");
 	});
@@ -96,7 +96,7 @@ describe("categorize", () => {
 			}),
 		];
 
-		const result = categorize(reviewed, [], [], 3);
+		const result = categorize(reviewed, [], [], 3, []);
 		expect(result).toHaveLength(1);
 		expect(result[0].category).toBe("stale");
 		expect(result[0].detail).toContain("No activity for");
@@ -111,7 +111,7 @@ describe("categorize", () => {
 			}),
 		];
 
-		const result = categorize(reviewed, [], [], 3);
+		const result = categorize(reviewed, [], [], 3, []);
 		const stale = result.filter((r) => r.category === "stale");
 		expect(stale).toHaveLength(0);
 	});
@@ -125,7 +125,7 @@ describe("categorize", () => {
 			}),
 		];
 
-		const result = categorize([], [], authored, 3);
+		const result = categorize([], [], authored, 3, []);
 		expect(result).toHaveLength(1);
 		expect(result[0].category).toBe("waiting-on-others");
 		expect(result[0].detail).toContain("@alice");
@@ -135,7 +135,7 @@ describe("categorize", () => {
 	test("does NOT flag authored PRs with no requested reviewers", () => {
 		const authored = [makePR({ number: 60, author: "me" })];
 
-		const result = categorize([], [], authored, 3);
+		const result = categorize([], [], authored, 3, []);
 		expect(result).toHaveLength(0);
 	});
 
@@ -153,11 +153,43 @@ describe("categorize", () => {
 			[makePR({ number: 70 })],
 			[makePR({ number: 70, requestedReviewers: ["someone"] })],
 			3,
+			[],
 		);
 
 		// Should only appear once (needs-re-review wins)
 		expect(result).toHaveLength(1);
 		expect(result[0].category).toBe("needs-re-review");
+	});
+
+	test("categorizes open PRs when allOpenPRs is provided", () => {
+		const allOpen = [makePR({ number: 80, author: "eve" })];
+
+		const result = categorize([], [], [], 3, allOpen);
+		expect(result).toHaveLength(1);
+		expect(result[0].category).toBe("open");
+		expect(result[0].number).toBe(80);
+		expect(result[0].detail).toContain("Updated");
+	});
+
+	test("deduplicates open PRs against earlier categories", () => {
+		const requested = [makePR({ number: 90, author: "bob" })];
+		const allOpen = [
+			makePR({ number: 90, author: "bob" }),
+			makePR({ number: 91, author: "carol" }),
+		];
+
+		const result = categorize([], requested, [], 3, allOpen);
+		expect(result).toHaveLength(2);
+		expect(result[0].category).toBe("requested");
+		expect(result[0].number).toBe(90);
+		expect(result[1].category).toBe("open");
+		expect(result[1].number).toBe(91);
+	});
+
+	test("empty allOpenPRs produces no open entries", () => {
+		const result = categorize([], [], [], 3, []);
+		const open = result.filter((r) => r.category === "open");
+		expect(open).toHaveLength(0);
 	});
 
 	test("handles multiple PRs across all categories", () => {
@@ -177,7 +209,7 @@ describe("categorize", () => {
 		const requested = [makePR({ number: 3 })];
 		const authored = [makePR({ number: 4, requestedReviewers: ["reviewer"] })];
 
-		const result = categorize(reviewed, requested, authored, 3);
+		const result = categorize(reviewed, requested, authored, 3, []);
 
 		const categories = result.map((r) => r.category);
 		expect(categories).toContain("needs-re-review");

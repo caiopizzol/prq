@@ -23,6 +23,7 @@ export function categorize(
 	requestedPRs: PRBasic[],
 	authoredPRs: PRBasic[],
 	staleDays: number,
+	allOpenPRs: PRBasic[],
 ): CategorizedPR[] {
 	const results: CategorizedPR[] = [];
 	const seen = new Set<string>();
@@ -120,6 +121,25 @@ export function categorize(
 				detail: `Waiting on review from ${reviewers}`,
 			});
 		}
+	}
+
+	// 5. All other open PRs (when showAllOpen is enabled)
+	for (const pr of allOpenPRs) {
+		const k = key(pr);
+		if (seen.has(k)) continue;
+		seen.add(k);
+
+		results.push({
+			category: "open",
+			repo: pr.repo,
+			number: pr.number,
+			title: pr.title,
+			author: pr.author,
+			url: pr.url,
+			isDraft: pr.isDraft,
+			updatedAt: pr.updatedAt,
+			detail: `Updated ${timeAgo(pr.updatedAt)}`,
+		});
 	}
 
 	return results;

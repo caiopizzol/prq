@@ -5,6 +5,7 @@ import { z } from "zod";
 const configSchema = z.object({
 	repos: z.array(z.string()).default([]),
 	staleDays: z.number().default(3),
+	showAllOpen: z.boolean().default(false),
 	user: z.string().optional(),
 	actions: z.record(z.string()).default({}),
 });
