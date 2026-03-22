@@ -2,6 +2,7 @@ import { categorize } from "../categorize.js";
 import type { Config } from "../config.js";
 import { getAuthenticatedUser } from "../github/client.js";
 import {
+	enrichAllWithCommits,
 	enrichAllWithReviews,
 	fetchAllOpenPRs,
 	fetchAuthoredPRs,
@@ -43,7 +44,10 @@ export async function statusCommand(
 	process.stderr.write(`Found ${parts.join(", ")}\n`);
 
 	// Phase 2: Enrich reviewed PRs with review/commit timestamps
-	const reviewedPRs = await enrichAllWithReviews(reviewedRaw, user);
+	const [reviewedPRs, openPRsEnriched] = await Promise.all([
+		enrichAllWithReviews(reviewedRaw, user),
+		config.showAllOpen ? enrichAllWithCommits(allOpenPRs) : Promise.resolve([]),
+	]);
 
 	// Phase 3: Categorize
 	const categorized = categorize(
@@ -51,7 +55,7 @@ export async function statusCommand(
 		requestedPRs,
 		authoredPRs,
 		config.staleDays,
-		config.showAllOpen ? allOpenPRs : [],
+		openPRsEnriched,
 	);
 
 	// Phase 4: Apply local in-progress state

@@ -1,4 +1,4 @@
-import type { PRBasic, PRWithReviews } from "./github/types.js";
+import type { PRBasic, PRWithCommit, PRWithReviews } from "./github/types.js";
 import type { CategorizedPR } from "./types.js";
 
 function timeAgo(dateStr: string): string {
@@ -23,7 +23,7 @@ export function categorize(
 	requestedPRs: PRBasic[],
 	authoredPRs: PRBasic[],
 	staleDays: number,
-	allOpenPRs: PRBasic[],
+	allOpenPRs: PRWithCommit[],
 ): CategorizedPR[] {
 	const results: CategorizedPR[] = [];
 	const seen = new Set<string>();
@@ -138,7 +138,7 @@ export function categorize(
 			url: pr.url,
 			isDraft: pr.isDraft,
 			updatedAt: pr.updatedAt,
-			detail: `Updated ${timeAgo(pr.updatedAt)}`,
+			detail: `Last commit ${timeAgo(pr.latestCommitAt)}`,
 		});
 	}
 

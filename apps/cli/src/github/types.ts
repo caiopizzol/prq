@@ -9,6 +9,10 @@ export interface PRBasic {
 	requestedReviewers: string[];
 }
 
+export interface PRWithCommit extends PRBasic {
+	latestCommitAt: string;
+}
+
 export interface PRWithReviews extends PRBasic {
 	userLastReviewedAt: string;
 	latestCommitAt: string;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { categorize } from "./categorize.js";
-import type { PRBasic, PRWithReviews } from "./github/types.js";
+import type { PRBasic, PRWithCommit, PRWithReviews } from "./github/types.js";
 
 const now = Date.now();
 const hoursAgo = (h: number) => new Date(now - h * 3_600_000).toISOString();
@@ -16,6 +16,14 @@ function makePR(overrides: Partial<PRBasic> = {}): PRBasic {
 		isDraft: false,
 		updatedAt: hoursAgo(1),
 		requestedReviewers: [],
+		...overrides,
+	};
+}
+
+function makeOpenPR(overrides: Partial<PRWithCommit> = {}): PRWithCommit {
+	return {
+		...makePR(),
+		latestCommitAt: hoursAgo(2),
 		...overrides,
 	};
 }
@@ -162,20 +170,20 @@ describe("categorize", () => {
 	});
 
 	test("categorizes open PRs when allOpenPRs is provided", () => {
-		const allOpen = [makePR({ number: 80, author: "eve" })];
+		const allOpen = [makeOpenPR({ number: 80, author: "eve" })];
 
 		const result = categorize([], [], [], 3, allOpen);
 		expect(result).toHaveLength(1);
 		expect(result[0].category).toBe("open");
 		expect(result[0].number).toBe(80);
-		expect(result[0].detail).toContain("Updated");
+		expect(result[0].detail).toContain("Last commit");
 	});
 
 	test("deduplicates open PRs against earlier categories", () => {
 		const requested = [makePR({ number: 90, author: "bob" })];
 		const allOpen = [
-			makePR({ number: 90, author: "bob" }),
-			makePR({ number: 91, author: "carol" }),
+			makeOpenPR({ number: 90, author: "bob" }),
+			makeOpenPR({ number: 91, author: "carol" }),
 		];
 
 		const result = categorize([], requested, [], 3, allOpen);

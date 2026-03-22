@@ -1,5 +1,5 @@
 import { getClient } from "./client.js";
-import type { PRBasic, PRWithReviews } from "./types.js";
+import type { PRBasic, PRWithCommit, PRWithReviews } from "./types.js";
 
 function buildRepoFilter(repos: string[]): string {
 	if (repos.length === 0) return "";
@@ -94,6 +94,41 @@ export async function fetchAllOpenPRs(repos: string[]): Promise<PRBasic[]> {
 	const repoFilter = buildRepoFilter(repos);
 	const query = `is:pr is:open ${repoFilter}`.trim();
 	return searchPRs(query);
+}
+
+async function enrichWithLatestCommit(pr: PRBasic): Promise<PRWithCommit> {
+	try {
+		const client = getClient();
+		const [owner, repo] = pr.repo.split("/");
+		const { data: commits } = await client.pulls.listCommits({
+			owner,
+			repo,
+			pull_number: pr.number,
+			per_page: 1,
+		});
+		const latest = commits[commits.length - 1];
+		const latestCommitAt =
+			latest?.commit.committer?.date ??
+			latest?.commit.author?.date ??
+			pr.updatedAt;
+		return { ...pr, latestCommitAt };
+	} catch {
+		return { ...pr, latestCommitAt: pr.updatedAt };
+	}
+}
+
+export async function enrichAllWithCommits(
+	prs: PRBasic[],
+): Promise<PRWithCommit[]> {
+	const results: PRWithCommit[] = [];
+	for (let i = 0; i < prs.length; i += MAX_CONCURRENCY) {
+		const batch = prs.slice(i, i + MAX_CONCURRENCY);
+		const enriched = await Promise.all(
+			batch.map((pr) => enrichWithLatestCommit(pr)),
+		);
+		results.push(...enriched);
+	}
+	return results;
 }
 
 export async function enrichWithReviews(
