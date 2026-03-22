@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import type { Config } from "./config.js";
 import type { ResolvedPR } from "./identifier.js";
+import { markNudged } from "./state.js";
 
 export interface ActionContext {
 	url: string;
@@ -52,6 +53,20 @@ export function interpolate(template: string, context: ActionContext): string {
 			return String(context[key as keyof ActionContext]);
 		}
 		return match;
+	});
+}
+
+const ACTION_HOOKS: Record<string, (context: ActionContext) => void> = {
+	nudge: (ctx) => markNudged({ repo: ctx.fullRepo, number: ctx.number }),
+};
+
+export function runActionWithHooks(
+	actionName: string,
+	command: string,
+	context: ActionContext,
+): Promise<void> {
+	return executeCommand(command).then(() => {
+		ACTION_HOOKS[actionName]?.(context);
 	});
 }
 

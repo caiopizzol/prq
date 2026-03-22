@@ -4,11 +4,12 @@ import {
 	executeCommand,
 	interpolate,
 	listActions,
+	runActionWithHooks,
 } from "./actions.js";
 import { CATEGORY_CONFIG, CATEGORY_ORDER } from "./categories.js";
 import type { Config } from "./config.js";
 import type { ResolvedPR } from "./identifier.js";
-import { applyInProgress, markNudged, toggleInProgress } from "./state.js";
+import { applyInProgress, toggleInProgress } from "./state.js";
 import type { CategorizedPR, PRCategory, StatusResult } from "./types.js";
 
 function toResolvedPR(pr: CategorizedPR): ResolvedPR {
@@ -158,7 +159,7 @@ async function runAction(
 	);
 
 	try {
-		await executeCommand(cmd);
+		await runActionWithHooks(actionName, cmd, context);
 		// Resume TUI
 		resume(state, onData);
 		return chalk.green(`${actionName}: ${pr.repo}#${pr.number}`);
@@ -281,9 +282,6 @@ export async function interactiveMode(
 							state,
 							onData,
 						);
-						if (!state.message.includes("failed")) {
-							markNudged({ repo: pr.repo, number: pr.number });
-						}
 					}
 					break;
 				}

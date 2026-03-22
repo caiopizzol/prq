@@ -1,10 +1,10 @@
 import chalk from "chalk";
 import {
 	buildContext,
-	executeCommand,
 	getAction,
 	interpolate,
 	listActions,
+	runActionWithHooks,
 } from "../actions.js";
 import type { Config } from "../config.js";
 import { resolveIdentifier } from "../identifier.js";
@@ -30,5 +30,5 @@ export async function runCommand(
 
 	process.stderr.write(chalk.dim(`${label} → ${action}: ${command}\n`));
 
-	await executeCommand(command);
+	await runActionWithHooks(action, command, context);
 }

@@ -1,11 +1,22 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import fs from "node:fs";
+import path from "node:path";
 import {
 	buildContext,
 	getAction,
 	interpolate,
 	listActions,
+	runActionWithHooks,
 } from "./actions.js";
 import type { ResolvedPR } from "./identifier.js";
+import { getNudgedAt } from "./state.js";
+
+const STATE_PATH = path.join(
+	process.env.HOME ?? "",
+	".config",
+	"prq",
+	"state.json",
+);
 
 const pr: ResolvedPR = {
 	owner: "org",
@@ -124,5 +135,33 @@ describe("listActions", () => {
 		};
 		const all = listActions(config);
 		expect(all.open).toBe("custom-open {url}");
+	});
+});
+
+describe("runActionWithHooks", () => {
+	afterEach(() => {
+		try {
+			fs.unlinkSync(STATE_PATH);
+		} catch {}
+	});
+
+	test("nudge action records state on success", async () => {
+		const ctx = buildContext(pr);
+		await runActionWithHooks("nudge", "true", ctx);
+		expect(getNudgedAt({ repo: "org/repo", number: 42 })).not.toBeNull();
+	});
+
+	test("nudge action does not record state on failure", async () => {
+		const ctx = buildContext(pr);
+		try {
+			await runActionWithHooks("nudge", "false", ctx);
+		} catch {}
+		expect(getNudgedAt({ repo: "org/repo", number: 42 })).toBeNull();
+	});
+
+	test("non-nudge action does not record nudge state", async () => {
+		const ctx = buildContext(pr);
+		await runActionWithHooks("open", "true", ctx);
+		expect(getNudgedAt({ repo: "org/repo", number: 42 })).toBeNull();
 	});
 });
