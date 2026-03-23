@@ -40,13 +40,7 @@ interface RenderState {
  * Count how many output lines a range of PRs will produce,
  * including category headers when the category changes.
  */
-function countLines(
-	prs: CategorizedPR[],
-	from: number,
-	to: number,
-	selectedIndex: number,
-	hasActionMenu: boolean,
-): number {
+function countLines(prs: CategorizedPR[], from: number, to: number): number {
 	let count = 0;
 	let lastCat: PRCategory | null = from > 0 ? null : null;
 
@@ -61,9 +55,6 @@ function countLines(
 			lastCat = prs[i].category;
 		}
 		count += 2; // title + detail
-		if (i === selectedIndex) {
-			count += hasActionMenu ? 2 : 1; // action menu items or shortcut line
-		}
 	}
 	return count;
 }
@@ -74,9 +65,10 @@ function render(state: RenderState) {
 
 	process.stdout.write("\x1B[2J\x1B[H");
 
-	// Reserve lines: header(2) + footer(2-3) + message(0-1)
+	// Reserve: header(2) + blank(1) + shortcuts(1) + indicator(0-1) + message(0-1)
+	const hasPages = result.prs.length > 5; // will likely paginate
 	const reservedTop = 2;
-	const reservedBottom = message ? 3 : 2;
+	const reservedBottom = 2 + (hasPages ? 1 : 0) + (message ? 1 : 0);
 	const budget = termHeight - reservedTop - reservedBottom;
 
 	// Adjust viewStart so selected PR is visible and lines fit budget
@@ -88,44 +80,20 @@ function render(state: RenderState) {
 	// Expand window from viewStart, counting lines until budget exceeded
 	let end = state.viewStart;
 	while (end < result.prs.length) {
-		const needed = countLines(
-			result.prs,
-			state.viewStart,
-			end + 1,
-			selectedIndex,
-			!!actionMenu,
-		);
-		if (needed > budget) break;
+		if (countLines(result.prs, state.viewStart, end + 1) > budget) break;
 		end++;
 	}
 
 	// If selected PR is not in [viewStart, end), shift viewStart forward
 	if (selectedIndex >= end) {
-		// Build backwards from selectedIndex
 		state.viewStart = selectedIndex;
 		end = selectedIndex + 1;
-		// Try to include more PRs before the selected one
 		while (state.viewStart > 0) {
-			const needed = countLines(
-				result.prs,
-				state.viewStart - 1,
-				end,
-				selectedIndex,
-				!!actionMenu,
-			);
-			if (needed > budget) break;
+			if (countLines(result.prs, state.viewStart - 1, end) > budget) break;
 			state.viewStart--;
 		}
-		// Try to include more PRs after the selected one
 		while (end < result.prs.length) {
-			const needed = countLines(
-				result.prs,
-				state.viewStart,
-				end + 1,
-				selectedIndex,
-				!!actionMenu,
-			);
-			if (needed > budget) break;
+			if (countLines(result.prs, state.viewStart, end + 1) > budget) break;
 			end++;
 		}
 	}
@@ -173,22 +141,6 @@ function render(state: RenderState) {
 				` ${arrow} ${chalk.white(`#${pr.number}`)}  ${chalk.white(title)}${draft}`,
 			);
 			lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
-
-			if (actionMenu) {
-				for (let j = 0; j < actionMenu.length; j++) {
-					lines.push(
-						`     ${chalk.white(String(j + 1))}. ${actionMenu[j].name}`,
-					);
-				}
-				lines.push(`     ${chalk.dim("1-9")} run  ${chalk.white("q")} back`);
-			} else {
-				const sLabel = pr.category === "in-progress" ? "stop" : "start";
-				lines.push(
-					chalk.dim(
-						`     r review  o open  n nudge  s ${sLabel}  c copy  a actions  q quit`,
-					),
-				);
-			}
 		} else {
 			lines.push(
 				` ${arrow} ${chalk.dim(`#${pr.number}`)}  ${chalk.dim(title)}${draft}`,
@@ -204,14 +156,24 @@ function render(state: RenderState) {
 
 	// Footer
 	lines.push("");
+	if (actionMenu) {
+		const pr = result.prs[selectedIndex];
+		lines.push(
+			` ${chalk.bold("Actions")} for ${chalk.white(`#${pr.number}`)}:  ${actionMenu.map((a, j) => `${chalk.white(String(j + 1))} ${a.name}`).join("  ")}  ${chalk.white("q")} back`,
+		);
+	} else {
+		const pr = result.prs[selectedIndex];
+		const sLabel = pr?.category === "in-progress" ? "stop" : "start";
+		lines.push(
+			` ${chalk.dim("r")} review  ${chalk.dim("o")} open  ${chalk.dim("n")} nudge  ${chalk.dim("s")} ${sLabel}  ${chalk.dim("c")} copy  ${chalk.dim("a")} actions  ${chalk.dim("q")} quit`,
+		);
+	}
 	if (result.prs.length > viewEnd - state.viewStart) {
 		lines.push(
 			chalk.dim(
 				` ${state.viewStart + 1}-${viewEnd} of ${result.prs.length}  ↑↓ navigate  ←→ page`,
 			),
 		);
-	} else {
-		lines.push(chalk.dim(` ${result.prs.length} PRs  ↑↓ navigate`));
 	}
 
 	if (message) {
