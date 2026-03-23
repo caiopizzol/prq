@@ -6,7 +6,7 @@ import {
 	listActions,
 	runActionWithHooks,
 } from "./actions.js";
-import { CATEGORY_CONFIG, CATEGORY_ORDER } from "./categories.js";
+import { CATEGORY_CONFIG } from "./categories.js";
 import type { Config } from "./config.js";
 import type { ResolvedPR } from "./identifier.js";
 import { applyInProgress, applyNudged, toggleInProgress } from "./state.js";
@@ -33,17 +33,19 @@ interface RenderState {
 	selectedIndex: number;
 	message: string;
 	actionMenu: { name: string; template: string }[] | null;
+	viewStart: number;
 }
 
 function render(state: RenderState) {
 	const { result, selectedIndex, message, actionMenu } = state;
+	const termHeight = process.stdout.rows || 24;
 
 	// Clear screen and move cursor to top
 	process.stdout.write("\x1B[2J\x1B[H");
 
 	const lines: string[] = [];
 
-	// Action bar at the top — always visible
+	// --- Top bar (shortcuts or action menu) ---
 	if (actionMenu) {
 		const pr = result.prs[selectedIndex];
 		lines.push(` ${chalk.bold("Actions")} for ${chalk.white(`#${pr.number}`)}`);
@@ -69,52 +71,88 @@ function render(state: RenderState) {
 	lines.push(chalk.bold(` PRQ Status for ${result.user}`));
 	lines.push(chalk.dim(` ${"─".repeat(50)}`));
 
-	const grouped = new Map<PRCategory, CategorizedPR[]>();
-	for (const pr of result.prs) {
+	// --- Compute how many PRs fit ---
+	const headerUsed = lines.length;
+	const footerLines = 2; // blank + separator
+	const maxBodyLines = Math.max(4, termHeight - headerUsed - footerLines);
+	const maxPRs = Math.floor(maxBodyLines / 2); // each PR = 2 lines
+
+	// Ensure selected PR is in view window
+	if (selectedIndex < state.viewStart) {
+		state.viewStart = selectedIndex;
+	}
+	if (selectedIndex >= state.viewStart + maxPRs) {
+		state.viewStart = selectedIndex - maxPRs + 1;
+	}
+	state.viewStart = Math.max(
+		0,
+		Math.min(state.viewStart, result.prs.length - maxPRs),
+	);
+
+	const viewEnd = Math.min(result.prs.length, state.viewStart + maxPRs);
+
+	// --- Build grouped structure with flat indices ---
+	const grouped = new Map<
+		PRCategory,
+		{ pr: CategorizedPR; flatIdx: number }[]
+	>();
+	for (let i = 0; i < result.prs.length; i++) {
+		const pr = result.prs[i];
 		const list = grouped.get(pr.category) ?? [];
-		list.push(pr);
+		list.push({ pr, flatIdx: i });
 		grouped.set(pr.category, list);
 	}
 
-	let flatIndex = 0;
+	// --- Render only PRs in the visible window ---
+	let lastCategory: PRCategory | null = null;
 
-	for (const category of CATEGORY_ORDER) {
-		const prs = grouped.get(category);
-		if (!prs || prs.length === 0) continue;
+	for (let flatIdx = state.viewStart; flatIdx < viewEnd; flatIdx++) {
+		const pr = result.prs[flatIdx];
+		const isSelected = flatIdx === selectedIndex;
 
-		const config = CATEGORY_CONFIG[category];
-		lines.push("");
-		lines.push(
-			` ${config.color(`${config.icon} ${config.label}`)} ${chalk.dim(`(${prs.length})`)}`,
-		);
+		// Show category header when category changes
+		if (pr.category !== lastCategory) {
+			const catConfig = CATEGORY_CONFIG[pr.category];
+			const catPrs = grouped.get(pr.category) ?? [];
+			lines.push("");
+			lines.push(
+				` ${catConfig.color(`${catConfig.icon} ${catConfig.label}`)} ${chalk.dim(`(${catPrs.length})`)}`,
+			);
+			lastCategory = pr.category;
+		}
 
-		for (const pr of prs) {
-			const isSelected = flatIndex === selectedIndex;
-			const arrow = isSelected ? chalk.yellow("›") : " ";
-			const draft = pr.isDraft ? chalk.dim(" [draft]") : "";
-			const maxTitle = 50;
-			const title =
-				pr.title.length > maxTitle
-					? `${pr.title.slice(0, maxTitle - 3)}...`
-					: pr.title;
+		const arrow = isSelected ? chalk.yellow("›") : " ";
+		const draft = pr.isDraft ? chalk.dim(" [draft]") : "";
+		const maxTitle = 50;
+		const title =
+			pr.title.length > maxTitle
+				? `${pr.title.slice(0, maxTitle - 3)}...`
+				: pr.title;
 
-			if (isSelected) {
-				const ref = chalk.white(`#${pr.number}`);
-				lines.push(` ${arrow} ${ref}  ${chalk.white(title)}${draft}`);
-				lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
-			} else {
-				const ref = chalk.dim(`#${pr.number}`);
-				lines.push(` ${arrow} ${ref}  ${chalk.dim(title)}${draft}`);
-				lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
-			}
-
-			flatIndex++;
+		if (isSelected) {
+			const ref = chalk.white(`#${pr.number}`);
+			lines.push(` ${arrow} ${ref}  ${chalk.white(title)}${draft}`);
+			lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
+		} else {
+			const ref = chalk.dim(`#${pr.number}`);
+			lines.push(` ${arrow} ${ref}  ${chalk.dim(title)}${draft}`);
+			lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
 		}
 	}
 
 	if (result.prs.length === 0) {
 		lines.push("");
 		lines.push(chalk.green("  All clear! No PRs need your attention."));
+	}
+
+	// Scroll indicator
+	if (result.prs.length > maxPRs) {
+		lines.push("");
+		lines.push(
+			chalk.dim(
+				` showing ${state.viewStart + 1}-${viewEnd} of ${result.prs.length} PRs`,
+			),
+		);
 	}
 
 	lines.push("");
@@ -150,7 +188,6 @@ async function runAction(
 	const context = buildContext(toResolvedPR(pr), pr.category, pr.detail);
 	const cmd = interpolate(template, context);
 
-	// Suspend TUI so the command gets full terminal control
 	suspend();
 	process.stdout.write(
 		chalk.dim(`\n  running ${actionName} on ${pr.repo}#${pr.number}...\n\n`),
@@ -158,7 +195,6 @@ async function runAction(
 
 	try {
 		await runActionWithHooks(actionName, cmd, context);
-		// Resume TUI
 		resume(state, onData);
 		return chalk.green(`${actionName}: ${pr.repo}#${pr.number}`);
 	} catch {
@@ -186,9 +222,9 @@ export async function interactiveMode(
 		selectedIndex: 0,
 		message: "",
 		actionMenu: null,
+		viewStart: 0,
 	};
 
-	// Enable raw mode for keypress capture
 	if (!process.stdin.isTTY) {
 		process.stdout.write(
 			"Interactive mode requires a terminal. Use prq status instead.\n",
@@ -244,12 +280,10 @@ export async function interactiveMode(
 					state.message = "";
 					break;
 				case "\x1B[D":
-					// Left arrow — page up (jump 10)
 					state.selectedIndex = Math.max(0, state.selectedIndex - PAGE_SIZE);
 					state.message = "";
 					break;
 				case "\x1B[C":
-					// Right arrow — page down (jump 10)
 					state.selectedIndex = Math.min(
 						total - 1,
 						state.selectedIndex + PAGE_SIZE,
