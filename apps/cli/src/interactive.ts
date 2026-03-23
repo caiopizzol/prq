@@ -36,45 +36,118 @@ interface RenderState {
 	viewStart: number;
 }
 
+/**
+ * Count how many output lines a range of PRs will produce,
+ * including category headers when the category changes.
+ */
+function countLines(
+	prs: CategorizedPR[],
+	from: number,
+	to: number,
+	selectedIndex: number,
+	hasActionMenu: boolean,
+): number {
+	let count = 0;
+	let lastCat: PRCategory | null = from > 0 ? null : null;
+
+	// Look back to find the previous category for header logic
+	if (from > 0) {
+		lastCat = prs[from - 1].category;
+	}
+
+	for (let i = from; i < to && i < prs.length; i++) {
+		if (prs[i].category !== lastCat) {
+			count += 2; // blank + category header
+			lastCat = prs[i].category;
+		}
+		count += 2; // title + detail
+		if (i === selectedIndex) {
+			count += hasActionMenu ? 2 : 1; // action menu items or shortcut line
+		}
+	}
+	return count;
+}
+
 function render(state: RenderState) {
 	const { result, selectedIndex, message, actionMenu } = state;
 	const termHeight = process.stdout.rows || 24;
 
 	process.stdout.write("\x1B[2J\x1B[H");
 
-	const lines: string[] = [];
+	// Reserve lines: header(2) + footer(2-3) + message(0-1)
+	const reservedTop = 2;
+	const reservedBottom = message ? 3 : 2;
+	const budget = termHeight - reservedTop - reservedBottom;
 
-	lines.push(chalk.bold(` PRQ Status for ${result.user}`));
-	lines.push(chalk.dim(` ${"─".repeat(50)}`));
-
-	// How many PRs fit (each PR = 2 lines title+detail, selected = 3 lines with shortcuts)
-	const headerLines = lines.length;
-	const footerLines = 3; // blank + indicator + separator
-	const maxBodyLines = Math.max(6, termHeight - headerLines - footerLines);
-	const maxPRs = Math.floor(maxBodyLines / 3); // worst case: selected PR takes 3 lines
-
-	// Keep selected PR in view
+	// Adjust viewStart so selected PR is visible and lines fit budget
+	// First ensure selected is in range
 	if (selectedIndex < state.viewStart) {
 		state.viewStart = selectedIndex;
 	}
-	if (selectedIndex >= state.viewStart + maxPRs) {
-		state.viewStart = selectedIndex - maxPRs + 1;
+
+	// Expand window from viewStart, counting lines until budget exceeded
+	let end = state.viewStart;
+	while (end < result.prs.length) {
+		const needed = countLines(
+			result.prs,
+			state.viewStart,
+			end + 1,
+			selectedIndex,
+			!!actionMenu,
+		);
+		if (needed > budget) break;
+		end++;
 	}
-	state.viewStart = Math.max(
-		0,
-		Math.min(state.viewStart, Math.max(0, result.prs.length - maxPRs)),
-	);
 
-	const viewEnd = Math.min(result.prs.length, state.viewStart + maxPRs);
+	// If selected PR is not in [viewStart, end), shift viewStart forward
+	if (selectedIndex >= end) {
+		// Build backwards from selectedIndex
+		state.viewStart = selectedIndex;
+		end = selectedIndex + 1;
+		// Try to include more PRs before the selected one
+		while (state.viewStart > 0) {
+			const needed = countLines(
+				result.prs,
+				state.viewStart - 1,
+				end,
+				selectedIndex,
+				!!actionMenu,
+			);
+			if (needed > budget) break;
+			state.viewStart--;
+		}
+		// Try to include more PRs after the selected one
+		while (end < result.prs.length) {
+			const needed = countLines(
+				result.prs,
+				state.viewStart,
+				end + 1,
+				selectedIndex,
+				!!actionMenu,
+			);
+			if (needed > budget) break;
+			end++;
+		}
+	}
 
-	// Group PRs for category counts
+	const viewEnd = end;
+
+	// --- Build output ---
+	const lines: string[] = [];
+
+	// Header
+	lines.push(chalk.bold(` PRQ Status for ${result.user}`));
+	lines.push(chalk.dim(` ${"─".repeat(50)}`));
+
+	// Category counts
 	const categoryCounts = new Map<PRCategory, number>();
 	for (const pr of result.prs) {
 		categoryCounts.set(pr.category, (categoryCounts.get(pr.category) ?? 0) + 1);
 	}
 
-	// Render visible PRs
-	let lastCategory: PRCategory | null = null;
+	// PRs
+	let lastCategory: PRCategory | null =
+		state.viewStart > 0 ? result.prs[state.viewStart - 1].category : null;
 
 	for (let i = state.viewStart; i < viewEnd; i++) {
 		const pr = result.prs[i];
@@ -101,7 +174,6 @@ function render(state: RenderState) {
 			);
 			lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
 
-			// Inline shortcuts or action menu
 			if (actionMenu) {
 				for (let j = 0; j < actionMenu.length; j++) {
 					lines.push(
@@ -130,9 +202,9 @@ function render(state: RenderState) {
 		lines.push(chalk.green("  All clear! No PRs need your attention."));
 	}
 
-	// Scroll indicator + navigation hint
+	// Footer
 	lines.push("");
-	if (result.prs.length > maxPRs) {
+	if (result.prs.length > viewEnd - state.viewStart) {
 		lines.push(
 			chalk.dim(
 				` ${state.viewStart + 1}-${viewEnd} of ${result.prs.length}  ↑↓ navigate  ←→ page`,
@@ -146,7 +218,9 @@ function render(state: RenderState) {
 		lines.push(` ${message}`);
 	}
 
-	process.stdout.write(lines.join("\n"));
+	// Hard cap: never exceed terminal height
+	const output = lines.slice(0, termHeight);
+	process.stdout.write(output.join("\n"));
 }
 
 function suspend() {
