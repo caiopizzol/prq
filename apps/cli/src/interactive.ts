@@ -31,15 +31,19 @@ interface RenderState {
 	selectedIndex: number;
 	message: string;
 	actionMenu: { name: string; template: string }[] | null;
+	scrollOffset: number;
 }
 
-function render(state: RenderState) {
+function buildLines(state: RenderState): {
+	lines: string[];
+	selectedLineStart: number;
+	selectedLineEnd: number;
+} {
 	const { result, selectedIndex, message, actionMenu } = state;
 
-	// Clear screen and move cursor to top
-	process.stdout.write("\x1B[2J\x1B[H");
-
 	const lines: string[] = [];
+	let selectedLineStart = -1;
+	let selectedLineEnd = -1;
 
 	lines.push(chalk.bold(` PRQ Status for ${result.user}`));
 	lines.push(chalk.dim(` ${"─".repeat(50)}`));
@@ -73,6 +77,8 @@ function render(state: RenderState) {
 					? `${pr.title.slice(0, maxTitle - 3)}...`
 					: pr.title;
 
+			if (isSelected) selectedLineStart = lines.length;
+
 			if (isSelected) {
 				const ref = chalk.white(`#${pr.number}`);
 				lines.push(` ${arrow} ${ref}  ${chalk.white(title)}${draft}`);
@@ -82,6 +88,8 @@ function render(state: RenderState) {
 				lines.push(` ${arrow} ${ref}  ${chalk.dim(title)}${draft}`);
 				lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
 			}
+
+			if (isSelected) selectedLineEnd = lines.length - 1;
 
 			flatIndex++;
 		}
@@ -96,7 +104,6 @@ function render(state: RenderState) {
 	lines.push(chalk.dim(` ${"─".repeat(50)}`));
 
 	if (actionMenu) {
-		// Action menu overlay
 		const pr = result.prs[selectedIndex];
 		lines.push("");
 		lines.push(` ${chalk.bold("Actions")} for ${chalk.white(`#${pr.number}`)}`);
@@ -107,7 +114,6 @@ function render(state: RenderState) {
 		lines.push("");
 		lines.push(` ${chalk.dim("1-9")} run action  ${chalk.white("q")} back`);
 	} else {
-		// Normal action bar
 		const pr = result.prs[selectedIndex];
 		const sLabel = pr?.category === "in-progress" ? "stop" : "start";
 		lines.push("");
@@ -116,13 +122,44 @@ function render(state: RenderState) {
 		);
 	}
 
-	// Message line
 	if (message) {
 		lines.push("");
 		lines.push(` ${message}`);
 	}
 
-	process.stdout.write(lines.join("\n"));
+	return { lines, selectedLineStart, selectedLineEnd };
+}
+
+function render(state: RenderState) {
+	const termHeight = process.stdout.rows || 24;
+	const { lines, selectedLineStart, selectedLineEnd } = buildLines(state);
+
+	// If everything fits, no scrolling needed
+	if (lines.length <= termHeight) {
+		state.scrollOffset = 0;
+	} else {
+		// Ensure selected PR is visible with 1 line of padding
+		const padding = 1;
+		if (selectedLineStart - padding < state.scrollOffset) {
+			state.scrollOffset = Math.max(0, selectedLineStart - padding);
+		}
+		if (selectedLineEnd + padding >= state.scrollOffset + termHeight) {
+			state.scrollOffset = selectedLineEnd + padding - termHeight + 1;
+		}
+		// Clamp
+		state.scrollOffset = Math.max(
+			0,
+			Math.min(state.scrollOffset, lines.length - termHeight),
+		);
+	}
+
+	const visible = lines.slice(
+		state.scrollOffset,
+		state.scrollOffset + termHeight,
+	);
+
+	process.stdout.write("\x1B[2J\x1B[H");
+	process.stdout.write(visible.join("\n"));
 }
 
 function suspend() {
@@ -188,6 +225,7 @@ export async function interactiveMode(
 		selectedIndex: 0,
 		message: "",
 		actionMenu: null,
+		scrollOffset: 0,
 	};
 
 	// Enable raw mode for keypress capture
