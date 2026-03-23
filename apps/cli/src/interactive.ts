@@ -312,15 +312,14 @@ export async function interactiveMode(
 				}
 				case "n": {
 					const template = allActions.nudge;
-					if (template) {
-						state.message = await runAction(
-							"nudge",
-							template,
-							pr,
-							state,
-							onData,
-						);
+					if (!template) break;
+					const isOwnPR = pr.author === state.result.user;
+					const hasReviewers = /@\w/.test(pr.detail);
+					if (isOwnPR && !hasReviewers) {
+						state.message = chalk.yellow("no reviewers to nudge");
+						break;
 					}
+					state.message = await runAction("nudge", template, pr, state, onData);
 					break;
 				}
 				case "c": {
