@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import stripAnsi from "strip-ansi";
 import {
 	buildContext,
 	executeCommand,
@@ -34,19 +35,39 @@ interface RenderState {
 	scrollOffset: number;
 }
 
-function buildLines(state: RenderState): {
+/** Truncate a string (ANSI-aware) to fit within maxCols visible characters */
+function truncateLine(line: string, maxCols: number): string {
+	const plain = stripAnsi(line);
+	if (plain.length <= maxCols) return line;
+
+	// Walk the original string, tracking visible char count
+	let visible = 0;
+	let i = 0;
+	while (i < line.length && visible < maxCols - 1) {
+		if (line[i] === "\x1B") {
+			// Skip ANSI escape sequence
+			const end = line.indexOf("m", i);
+			if (end !== -1) {
+				i = end + 1;
+				continue;
+			}
+		}
+		visible++;
+		i++;
+	}
+	return `${line.slice(0, i)}${chalk.reset("…")}`;
+}
+
+function buildBodyLines(state: RenderState): {
 	lines: string[];
 	selectedLineStart: number;
 	selectedLineEnd: number;
 } {
-	const { result, selectedIndex, message, actionMenu } = state;
+	const { result, selectedIndex } = state;
 
 	const lines: string[] = [];
 	let selectedLineStart = -1;
 	let selectedLineEnd = -1;
-
-	lines.push(chalk.bold(` PRQ Status for ${result.user}`));
-	lines.push(chalk.dim(` ${"─".repeat(50)}`));
 
 	const grouped = new Map<PRCategory, CategorizedPR[]>();
 	for (const pr of result.prs) {
@@ -100,12 +121,24 @@ function buildLines(state: RenderState): {
 		lines.push(chalk.green("  All clear! No PRs need your attention."));
 	}
 
-	lines.push("");
+	return { lines, selectedLineStart, selectedLineEnd };
+}
+
+function buildHeaderLines(state: RenderState): string[] {
+	return [
+		chalk.bold(` PRQ Status for ${state.result.user}`),
+		chalk.dim(` ${"─".repeat(50)}`),
+	];
+}
+
+function buildFooterLines(state: RenderState): string[] {
+	const { selectedIndex, actionMenu, message, result } = state;
+	const lines: string[] = [];
+
 	lines.push(chalk.dim(` ${"─".repeat(50)}`));
 
 	if (actionMenu) {
 		const pr = result.prs[selectedIndex];
-		lines.push("");
 		lines.push(` ${chalk.bold("Actions")} for ${chalk.white(`#${pr.number}`)}`);
 		lines.push("");
 		for (let i = 0; i < actionMenu.length; i++) {
@@ -116,65 +149,92 @@ function buildLines(state: RenderState): {
 	} else {
 		const pr = result.prs[selectedIndex];
 		const sLabel = pr?.category === "in-progress" ? "stop" : "start";
-		lines.push("");
 		lines.push(
-			` ${chalk.dim("↑↓")} navigate  ${chalk.dim("←→")} page  ${chalk.white("r")} review  ${chalk.white("o")} open  ${chalk.white("n")} nudge  ${chalk.white("s")} ${sLabel}  ${chalk.white("c")} copy url  ${chalk.white("a")} actions  ${chalk.white("q")} quit`,
+			` ${chalk.dim("↑↓")} navigate  ${chalk.dim("←→")} page  ${chalk.white("r")} review  ${chalk.white("o")} open  ${chalk.white("n")} nudge  ${chalk.white("s")} ${sLabel}  ${chalk.white("c")} copy  ${chalk.white("a")} actions  ${chalk.white("q")} quit`,
 		);
 	}
 
 	if (message) {
-		lines.push("");
 		lines.push(` ${message}`);
 	}
 
-	return { lines, selectedLineStart, selectedLineEnd };
+	return lines;
 }
 
 function render(state: RenderState) {
 	const termHeight = process.stdout.rows || 24;
-	const { lines, selectedLineStart, selectedLineEnd } = buildLines(state);
+	const termWidth = process.stdout.columns || 80;
 
-	// If everything fits, no scrolling needed
-	if (lines.length <= termHeight) {
+	const headerLines = buildHeaderLines(state);
+	const footerLines = buildFooterLines(state);
+	const {
+		lines: bodyLines,
+		selectedLineStart,
+		selectedLineEnd,
+	} = buildBodyLines(state);
+
+	// Body gets whatever height is left after header + footer
+	const bodyHeight = Math.max(
+		1,
+		termHeight - headerLines.length - footerLines.length,
+	);
+
+	// Scroll offset for body only
+	if (bodyLines.length <= bodyHeight) {
 		state.scrollOffset = 0;
 	} else {
-		// Ensure selected PR is visible with 1 line of padding
 		const padding = 1;
 		if (selectedLineStart - padding < state.scrollOffset) {
 			state.scrollOffset = Math.max(0, selectedLineStart - padding);
 		}
-		if (selectedLineEnd + padding >= state.scrollOffset + termHeight) {
-			state.scrollOffset = selectedLineEnd + padding - termHeight + 1;
+		if (selectedLineEnd + padding >= state.scrollOffset + bodyHeight) {
+			state.scrollOffset = selectedLineEnd + padding - bodyHeight + 1;
 		}
-		// Clamp
 		state.scrollOffset = Math.max(
 			0,
-			Math.min(state.scrollOffset, lines.length - termHeight),
+			Math.min(state.scrollOffset, bodyLines.length - bodyHeight),
 		);
 	}
 
-	const visible = lines.slice(
+	const visibleBody = bodyLines.slice(
 		state.scrollOffset,
-		state.scrollOffset + termHeight,
+		state.scrollOffset + bodyHeight,
 	);
 
-	console.clear();
-	process.stdout.write(visible.join("\n"));
+	// Assemble all lines: header + visible body (padded) + footer
+	const allLines: string[] = [...headerLines, ...visibleBody];
+
+	// Pad body to fill available space
+	while (allLines.length < termHeight - footerLines.length) {
+		allLines.push("");
+	}
+
+	allLines.push(...footerLines);
+
+	// Single-write render: cursor home + per-line clear
+	let output = "\x1B[H";
+	for (let i = 0; i < termHeight; i++) {
+		const line = allLines[i] ?? "";
+		output += `${truncateLine(line, termWidth)}\x1B[K`;
+		if (i < termHeight - 1) output += "\n";
+	}
+	process.stdout.write(output);
 }
 
 function suspend() {
 	process.stdin.setRawMode(false);
 	process.stdin.pause();
 	process.stdin.removeAllListeners("data");
-	// Show cursor and clear screen
-	process.stdout.write("\x1B[?25h\x1B[2J\x1B[H");
+	// Show cursor, leave alternate screen
+	process.stdout.write("\x1B[?25h\x1B[?1049l");
 }
 
 function resume(state: RenderState, onData: (key: string) => void) {
+	// Enter alternate screen, hide cursor
+	process.stdout.write("\x1B[?1049h\x1B[?25l");
 	process.stdin.setRawMode(true);
 	process.stdin.resume();
 	process.stdin.setEncoding("utf8");
-	process.stdout.write("\x1B[?25l");
 	process.stdin.on("data", onData);
 	render(state);
 }
@@ -229,7 +289,7 @@ export async function interactiveMode(
 	};
 
 	// Enable raw mode for keypress capture
-	if (!process.stdin.isTTY) {
+	if (!process.stdin.isTTY || !process.stdout.isTTY) {
 		process.stdout.write(
 			"Interactive mode requires a terminal. Use prq status instead.\n",
 		);
@@ -237,6 +297,16 @@ export async function interactiveMode(
 	}
 
 	return new Promise((resolve) => {
+		// Re-render on terminal resize
+		const onResize = () => render(state);
+		process.stdout.on("resize", onResize);
+
+		const cleanup = () => {
+			process.stdout.removeListener("resize", onResize);
+			suspend();
+			resolve();
+		};
+
 		const onData = async (key: string) => {
 			const pr = result.prs[state.selectedIndex];
 
@@ -246,8 +316,7 @@ export async function interactiveMode(
 					state.actionMenu = null;
 					state.message = "";
 				} else if (key === "\x03") {
-					suspend();
-					resolve();
+					cleanup();
 					return;
 				} else {
 					const idx = parseInt(key, 10);
@@ -271,8 +340,7 @@ export async function interactiveMode(
 			switch (key) {
 				case "q":
 				case "\x03":
-					suspend();
-					resolve();
+					cleanup();
 					return;
 
 				case "\x1B[A":
