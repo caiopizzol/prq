@@ -46,7 +46,7 @@ prq --no-interactive                       # plain text output
 
 Navigate your queue with keyboard shortcuts:
 
-- **↑↓** navigate  **r** review  **o** open  **n** nudge  **s** start/stop  **c** copy url  **a** actions  **q** quit
+- **↑↓** navigate  **←→** page up/down  **r** review  **o** open  **n** nudge  **s** start/stop  **c** copy url  **a** actions  **q** quit
 
 Press **a** to open the actions menu — all actions (built-in and custom) are listed and accessible by number.
 

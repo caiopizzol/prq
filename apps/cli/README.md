@@ -57,9 +57,10 @@ Interactive mode is the default when running in a terminal. Navigate your queue 
 | Key | Action |
 |-----|--------|
 | ↑↓ | Navigate between PRs |
+| ←→ | Page up / page down |
 | r | Review — open files changed |
 | o | Open — open PR in browser |
-| n | Nudge — post a comment |
+| n | Nudge — post a comment (won't double-ping) |
 | s | Start/Stop — mark as in progress |
 | c | Copy URL to clipboard |
 | a | Actions — open menu with all actions |
