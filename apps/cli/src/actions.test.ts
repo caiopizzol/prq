@@ -62,9 +62,19 @@ describe("interpolate", () => {
 		expect(result).toBe("{unknown} stays");
 	});
 
-	test("computes days from updatedAt", () => {
+	test("computes days from updatedAt when no detail", () => {
 		const ctx = buildContext(pr);
 		expect(ctx.days).toBe(5);
+	});
+
+	test("extracts days from detail when available", () => {
+		const ctx = buildContext(pr, "stale", "No activity for 30 days");
+		expect(ctx.days).toBe(30);
+	});
+
+	test("extracts days from detail with d ago format", () => {
+		const ctx = buildContext(pr, "open", "Last commit 11d ago");
+		expect(ctx.days).toBe(11);
 	});
 
 	test("replaces category", () => {

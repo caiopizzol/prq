@@ -31,14 +31,26 @@ export function listActions(config: Config): Record<string, string> {
 	return { ...DEFAULT_ACTIONS, ...config.actions };
 }
 
+function parseDaysFromDetail(detail: string): number | null {
+	const match = detail.match(/(\d+)d ago/);
+	if (match) return Number.parseInt(match[1], 10);
+	const daysMatch = detail.match(/(\d+) days?/);
+	if (daysMatch) return Number.parseInt(daysMatch[1], 10);
+	if (detail.includes("ago")) return 0;
+	return null;
+}
+
 export function buildContext(
 	pr: ResolvedPR,
 	category = "",
 	detail = "",
 ): ActionContext {
-	const days = Math.floor(
-		(Date.now() - new Date(pr.updatedAt || Date.now()).getTime()) / 86_400_000,
-	);
+	const days =
+		parseDaysFromDetail(detail) ??
+		Math.floor(
+			(Date.now() - new Date(pr.updatedAt || Date.now()).getTime()) /
+				86_400_000,
+		);
 
 	// For waiting-on-others, target the reviewers instead of the author
 	let target = `@${pr.author}`;
