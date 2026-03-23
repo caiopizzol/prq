@@ -8,7 +8,6 @@ const configSchema = z.object({
 	showAllOpen: z.boolean().default(false),
 	user: z.string().optional(),
 	actions: z.record(z.string()).default({}),
-	pageSize: z.number().default(10),
 });
 
 export type Config = z.infer<typeof configSchema>;

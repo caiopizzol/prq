@@ -115,7 +115,6 @@ describe("getAction", () => {
 			staleDays: 3,
 			showAllOpen: false,
 			actions: {},
-			pageSize: 10,
 		};
 		expect(getAction("open", config)).toBe("open {url}");
 		expect(getAction("review", config)).toBe("open {url}/files");
@@ -126,7 +125,7 @@ describe("getAction", () => {
 			repos: [],
 			staleDays: 3,
 			showAllOpen: false,
-			pageSize: 10,
+
 			actions: { review: "claude -p '/review {url}'" },
 		};
 		expect(getAction("review", config)).toBe("claude -p '/review {url}'");
@@ -137,7 +136,7 @@ describe("getAction", () => {
 			repos: [],
 			staleDays: 3,
 			showAllOpen: false,
-			pageSize: 10,
+
 			actions: { checkout: "gh pr checkout {number}" },
 		};
 		expect(getAction("checkout", config)).toBe("gh pr checkout {number}");
@@ -149,7 +148,6 @@ describe("getAction", () => {
 			staleDays: 3,
 			showAllOpen: false,
 			actions: {},
-			pageSize: 10,
 		};
 		expect(getAction("nonexistent", config)).toBeUndefined();
 	});
@@ -161,7 +159,7 @@ describe("listActions", () => {
 			repos: [],
 			staleDays: 3,
 			showAllOpen: false,
-			pageSize: 10,
+
 			actions: { checkout: "gh pr checkout {number}" },
 		};
 		const all = listActions(config);
@@ -175,7 +173,7 @@ describe("listActions", () => {
 			repos: [],
 			staleDays: 3,
 			showAllOpen: false,
-			pageSize: 10,
+
 			actions: { open: "custom-open {url}" },
 		};
 		const all = listActions(config);

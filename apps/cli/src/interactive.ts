@@ -1,5 +1,4 @@
 import chalk from "chalk";
-import stripAnsi from "strip-ansi";
 import {
 	buildContext,
 	executeCommand,
@@ -12,6 +11,8 @@ import type { Config } from "./config.js";
 import type { ResolvedPR } from "./identifier.js";
 import { applyInProgress, applyNudged, toggleInProgress } from "./state.js";
 import type { CategorizedPR, PRCategory, StatusResult } from "./types.js";
+
+const PAGE_SIZE = 10;
 
 function toResolvedPR(pr: CategorizedPR): ResolvedPR {
 	const [owner, repo] = pr.repo.split("/");
@@ -32,42 +33,41 @@ interface RenderState {
 	selectedIndex: number;
 	message: string;
 	actionMenu: { name: string; template: string }[] | null;
-	scrollOffset: number;
 }
 
-/** Truncate a string (ANSI-aware) to fit within maxCols visible characters */
-function truncateLine(line: string, maxCols: number): string {
-	const plain = stripAnsi(line);
-	if (plain.length <= maxCols) return line;
+function render(state: RenderState) {
+	const { result, selectedIndex, message, actionMenu } = state;
 
-	// Walk the original string, tracking visible char count
-	let visible = 0;
-	let i = 0;
-	while (i < line.length && visible < maxCols - 1) {
-		if (line[i] === "\x1B") {
-			// Skip ANSI escape sequence
-			const end = line.indexOf("m", i);
-			if (end !== -1) {
-				i = end + 1;
-				continue;
-			}
-		}
-		visible++;
-		i++;
-	}
-	return `${line.slice(0, i)}${chalk.reset("…")}`;
-}
-
-function buildBodyLines(state: RenderState): {
-	lines: string[];
-	selectedLineStart: number;
-	selectedLineEnd: number;
-} {
-	const { result, selectedIndex } = state;
+	// Clear screen and move cursor to top
+	process.stdout.write("\x1B[2J\x1B[H");
 
 	const lines: string[] = [];
-	let selectedLineStart = -1;
-	let selectedLineEnd = -1;
+
+	// Action bar at the top — always visible
+	if (actionMenu) {
+		const pr = result.prs[selectedIndex];
+		lines.push(` ${chalk.bold("Actions")} for ${chalk.white(`#${pr.number}`)}`);
+		lines.push("");
+		for (let i = 0; i < actionMenu.length; i++) {
+			lines.push(`   ${chalk.white(String(i + 1))}. ${actionMenu[i].name}`);
+		}
+		lines.push("");
+		lines.push(` ${chalk.dim("1-9")} run action  ${chalk.white("q")} back`);
+	} else {
+		const pr = result.prs[selectedIndex];
+		const sLabel = pr?.category === "in-progress" ? "stop" : "start";
+		lines.push(
+			` ${chalk.dim("↑↓")} navigate  ${chalk.dim("←→")} page  ${chalk.white("r")} review  ${chalk.white("o")} open  ${chalk.white("n")} nudge  ${chalk.white("s")} ${sLabel}  ${chalk.white("c")} copy  ${chalk.white("a")} actions  ${chalk.white("q")} quit`,
+		);
+	}
+
+	if (message) {
+		lines.push(` ${message}`);
+	}
+
+	lines.push("");
+	lines.push(chalk.bold(` PRQ Status for ${result.user}`));
+	lines.push(chalk.dim(` ${"─".repeat(50)}`));
 
 	const grouped = new Map<PRCategory, CategorizedPR[]>();
 	for (const pr of result.prs) {
@@ -98,8 +98,6 @@ function buildBodyLines(state: RenderState): {
 					? `${pr.title.slice(0, maxTitle - 3)}...`
 					: pr.title;
 
-			if (isSelected) selectedLineStart = lines.length;
-
 			if (isSelected) {
 				const ref = chalk.white(`#${pr.number}`);
 				lines.push(` ${arrow} ${ref}  ${chalk.white(title)}${draft}`);
@@ -110,8 +108,6 @@ function buildBodyLines(state: RenderState): {
 				lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
 			}
 
-			if (isSelected) selectedLineEnd = lines.length - 1;
-
 			flatIndex++;
 		}
 	}
@@ -121,120 +117,25 @@ function buildBodyLines(state: RenderState): {
 		lines.push(chalk.green("  All clear! No PRs need your attention."));
 	}
 
-	return { lines, selectedLineStart, selectedLineEnd };
-}
-
-function buildHeaderLines(state: RenderState): string[] {
-	return [
-		chalk.bold(` PRQ Status for ${state.result.user}`),
-		chalk.dim(` ${"─".repeat(50)}`),
-	];
-}
-
-function buildFooterLines(state: RenderState): string[] {
-	const { selectedIndex, actionMenu, message, result } = state;
-	const lines: string[] = [];
-
+	lines.push("");
 	lines.push(chalk.dim(` ${"─".repeat(50)}`));
 
-	if (actionMenu) {
-		const pr = result.prs[selectedIndex];
-		lines.push(` ${chalk.bold("Actions")} for ${chalk.white(`#${pr.number}`)}`);
-		lines.push("");
-		for (let i = 0; i < actionMenu.length; i++) {
-			lines.push(`   ${chalk.white(String(i + 1))}. ${actionMenu[i].name}`);
-		}
-		lines.push("");
-		lines.push(` ${chalk.dim("1-9")} run action  ${chalk.white("q")} back`);
-	} else {
-		const pr = result.prs[selectedIndex];
-		const sLabel = pr?.category === "in-progress" ? "stop" : "start";
-		lines.push(
-			` ${chalk.dim("↑↓")} navigate  ${chalk.dim("←→")} page  ${chalk.white("r")} review  ${chalk.white("o")} open  ${chalk.white("n")} nudge  ${chalk.white("s")} ${sLabel}  ${chalk.white("c")} copy  ${chalk.white("a")} actions  ${chalk.white("q")} quit`,
-		);
-	}
-
-	if (message) {
-		lines.push(` ${message}`);
-	}
-
-	return lines;
-}
-
-function render(state: RenderState) {
-	const termHeight = process.stdout.rows || 24;
-	const termWidth = process.stdout.columns || 80;
-
-	const headerLines = buildHeaderLines(state);
-	const footerLines = buildFooterLines(state);
-	const {
-		lines: bodyLines,
-		selectedLineStart,
-		selectedLineEnd,
-	} = buildBodyLines(state);
-
-	// Body gets whatever height is left after header + footer
-	const bodyHeight = Math.max(
-		1,
-		termHeight - headerLines.length - footerLines.length,
-	);
-
-	// Scroll offset for body only
-	if (bodyLines.length <= bodyHeight) {
-		state.scrollOffset = 0;
-	} else {
-		const padding = 1;
-		if (selectedLineStart - padding < state.scrollOffset) {
-			state.scrollOffset = Math.max(0, selectedLineStart - padding);
-		}
-		if (selectedLineEnd + padding >= state.scrollOffset + bodyHeight) {
-			state.scrollOffset = selectedLineEnd + padding - bodyHeight + 1;
-		}
-		state.scrollOffset = Math.max(
-			0,
-			Math.min(state.scrollOffset, bodyLines.length - bodyHeight),
-		);
-	}
-
-	const visibleBody = bodyLines.slice(
-		state.scrollOffset,
-		state.scrollOffset + bodyHeight,
-	);
-
-	// Assemble all lines: header + visible body (padded) + footer
-	const allLines: string[] = [...headerLines, ...visibleBody];
-
-	// Pad body to fill available space
-	while (allLines.length < termHeight - footerLines.length) {
-		allLines.push("");
-	}
-
-	allLines.push(...footerLines);
-
-	// Single-write render: cursor home + per-line clear
-	let output = "\x1B[H";
-	for (let i = 0; i < termHeight; i++) {
-		const line = allLines[i] ?? "";
-		output += `${truncateLine(line, termWidth)}\x1B[K`;
-		if (i < termHeight - 1) output += "\n";
-	}
-	process.stdout.write(output);
+	process.stdout.write(lines.join("\n"));
 }
 
 function suspend() {
 	process.stdin.setRawMode(false);
 	process.stdin.pause();
 	process.stdin.removeAllListeners("data");
-	// Show cursor, leave alternate screen
-	process.stdout.write("\x1B[?25h\x1B[?1049l");
+	// Show cursor and clear screen
+	process.stdout.write("\x1B[?25h\x1B[2J\x1B[H");
 }
 
 function resume(state: RenderState, onData: (key: string) => void) {
-	// Enter alternate screen, hide cursor
-	process.stdout.write("\x1B[?1049h\x1B[?25l");
 	process.stdin.setRawMode(true);
 	process.stdin.resume();
 	process.stdin.setEncoding("utf8");
+	process.stdout.write("\x1B[?25l");
 	process.stdin.on("data", onData);
 	render(state);
 }
@@ -285,11 +186,10 @@ export async function interactiveMode(
 		selectedIndex: 0,
 		message: "",
 		actionMenu: null,
-		scrollOffset: 0,
 	};
 
 	// Enable raw mode for keypress capture
-	if (!process.stdin.isTTY || !process.stdout.isTTY) {
+	if (!process.stdin.isTTY) {
 		process.stdout.write(
 			"Interactive mode requires a terminal. Use prq status instead.\n",
 		);
@@ -297,16 +197,6 @@ export async function interactiveMode(
 	}
 
 	return new Promise((resolve) => {
-		// Re-render on terminal resize
-		const onResize = () => render(state);
-		process.stdout.on("resize", onResize);
-
-		const cleanup = () => {
-			process.stdout.removeListener("resize", onResize);
-			suspend();
-			resolve();
-		};
-
 		const onData = async (key: string) => {
 			const pr = result.prs[state.selectedIndex];
 
@@ -316,7 +206,8 @@ export async function interactiveMode(
 					state.actionMenu = null;
 					state.message = "";
 				} else if (key === "\x03") {
-					cleanup();
+					suspend();
+					resolve();
 					return;
 				} else {
 					const idx = parseInt(key, 10);
@@ -340,7 +231,8 @@ export async function interactiveMode(
 			switch (key) {
 				case "q":
 				case "\x03":
-					cleanup();
+					suspend();
+					resolve();
 					return;
 
 				case "\x1B[A":
@@ -352,18 +244,15 @@ export async function interactiveMode(
 					state.message = "";
 					break;
 				case "\x1B[D":
-					// Left arrow — page up
-					state.selectedIndex = Math.max(
-						0,
-						state.selectedIndex - config.pageSize,
-					);
+					// Left arrow — page up (jump 10)
+					state.selectedIndex = Math.max(0, state.selectedIndex - PAGE_SIZE);
 					state.message = "";
 					break;
 				case "\x1B[C":
-					// Right arrow — page down
+					// Right arrow — page down (jump 10)
 					state.selectedIndex = Math.min(
 						total - 1,
-						state.selectedIndex + config.pageSize,
+						state.selectedIndex + PAGE_SIZE,
 					);
 					state.message = "";
 					break;
