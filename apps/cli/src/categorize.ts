@@ -142,5 +142,11 @@ export function categorize(
 		});
 	}
 
+	// Sort within each category: most recent activity first
+	results.sort((a, b) => {
+		if (a.category !== b.category) return 0;
+		return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+	});
+
 	return results;
 }
