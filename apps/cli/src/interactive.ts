@@ -118,7 +118,7 @@ function buildLines(state: RenderState): {
 		const sLabel = pr?.category === "in-progress" ? "stop" : "start";
 		lines.push("");
 		lines.push(
-			` ${chalk.dim("↑↓")} navigate  ${chalk.white("r")} review  ${chalk.white("o")} open  ${chalk.white("n")} nudge  ${chalk.white("s")} ${sLabel}  ${chalk.white("c")} copy url  ${chalk.white("a")} actions  ${chalk.white("q")} quit`,
+			` ${chalk.dim("↑↓")} navigate  ${chalk.dim("←→")} page  ${chalk.white("r")} review  ${chalk.white("o")} open  ${chalk.white("n")} nudge  ${chalk.white("s")} ${sLabel}  ${chalk.white("c")} copy url  ${chalk.white("a")} actions  ${chalk.white("q")} quit`,
 		);
 	}
 
@@ -283,6 +283,29 @@ export async function interactiveMode(
 					state.selectedIndex = Math.min(total - 1, state.selectedIndex + 1);
 					state.message = "";
 					break;
+				case "\x1B[D": {
+					// Left arrow — page up
+					const pageSize = Math.max(
+						1,
+						Math.floor((process.stdout.rows || 24) / 3),
+					);
+					state.selectedIndex = Math.max(0, state.selectedIndex - pageSize);
+					state.message = "";
+					break;
+				}
+				case "\x1B[C": {
+					// Right arrow — page down
+					const pageSize = Math.max(
+						1,
+						Math.floor((process.stdout.rows || 24) / 3),
+					);
+					state.selectedIndex = Math.min(
+						total - 1,
+						state.selectedIndex + pageSize,
+					);
+					state.message = "";
+					break;
+				}
 
 				case "o": {
 					const template = allActions.open;
