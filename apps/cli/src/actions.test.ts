@@ -77,6 +77,25 @@ describe("interpolate", () => {
 		const ctx = buildContext(pr);
 		expect(ctx.category).toBe("");
 	});
+
+	test("target defaults to @author", () => {
+		const ctx = buildContext(pr);
+		expect(ctx.target).toBe("@alice");
+	});
+
+	test("target uses reviewers for waiting-on-others", () => {
+		const ctx = buildContext(
+			pr,
+			"waiting-on-others",
+			"Waiting on review from @bob, @charlie",
+		);
+		expect(ctx.target).toBe("@bob, @charlie");
+	});
+
+	test("target falls back to @author when no reviewers in detail", () => {
+		const ctx = buildContext(pr, "waiting-on-others", "some other detail");
+		expect(ctx.target).toBe("@alice");
+	});
 });
 
 describe("getAction", () => {

@@ -149,7 +149,7 @@ async function runAction(
 	state: RenderState,
 	onData: (key: string) => void,
 ): Promise<string> {
-	const context = buildContext(toResolvedPR(pr), pr.category);
+	const context = buildContext(toResolvedPR(pr), pr.category, pr.detail);
 	const cmd = interpolate(template, context);
 
 	// Suspend TUI so the command gets full terminal control

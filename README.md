@@ -86,7 +86,7 @@ Actions are configurable shell command templates. Inline commands or scripts —
 
 Actions run with full terminal control — interactive tools like Claude Code take over the screen, and prq resumes when they exit.
 
-Variables: `{url}`, `{number}`, `{owner}`, `{repo}`, `{fullRepo}`, `{title}`, `{author}`, `{days}`, `{category}`
+Variables: `{url}`, `{number}`, `{owner}`, `{repo}`, `{fullRepo}`, `{title}`, `{author}`, `{days}`, `{category}`, `{target}`
 
 ## Claude Code Skill
 

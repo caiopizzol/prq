@@ -13,13 +13,14 @@ export interface ActionContext {
 	author: string;
 	days: number;
 	category: string;
+	target: string;
 }
 
 const DEFAULT_ACTIONS: Record<string, string> = {
 	open: "open {url}",
 	review: "open {url}/files",
 	nudge:
-		"gh pr comment {number} --repo {owner}/{repo} --body 'Hey @{author}, is this PR still active? No activity for {days} days.'",
+		"gh pr comment {number} --repo {owner}/{repo} --body 'Hey {target}, this PR has had no activity for {days} days.'",
 };
 
 export function getAction(name: string, config: Config): string | undefined {
@@ -30,10 +31,22 @@ export function listActions(config: Config): Record<string, string> {
 	return { ...DEFAULT_ACTIONS, ...config.actions };
 }
 
-export function buildContext(pr: ResolvedPR, category = ""): ActionContext {
+export function buildContext(
+	pr: ResolvedPR,
+	category = "",
+	detail = "",
+): ActionContext {
 	const days = Math.floor(
 		(Date.now() - new Date(pr.updatedAt || Date.now()).getTime()) / 86_400_000,
 	);
+
+	// For waiting-on-others, target the reviewers instead of the author
+	let target = `@${pr.author}`;
+	if (category === "waiting-on-others" && detail) {
+		const match = detail.match(/@\w[\w-]*/g);
+		if (match) target = match.join(", ");
+	}
+
 	return {
 		url: pr.url,
 		number: pr.number,
@@ -44,6 +57,7 @@ export function buildContext(pr: ResolvedPR, category = ""): ActionContext {
 		author: pr.author,
 		days,
 		category,
+		target,
 	};
 }
 

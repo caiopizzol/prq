@@ -165,6 +165,7 @@ With no config, `prq review` opens the files changed tab and `prq open` opens th
 | `{author}` | `alice` |
 | `{days}` | `5` |
 | `{category}` | `needs-re-review` |
+| `{target}` | `@bob, @charlie` (reviewers for your PRs, author otherwise) |
 
 ## Scripting
 
