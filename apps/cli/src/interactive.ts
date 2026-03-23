@@ -158,13 +158,8 @@ function render(state: RenderState) {
 		state.scrollOffset + termHeight,
 	);
 
-	// Move to top, write each line clearing to end, then clear remaining lines
-	let output = "\x1B[H";
-	for (let i = 0; i < termHeight; i++) {
-		output += (visible[i] ?? "") + "\x1B[K";
-		if (i < termHeight - 1) output += "\n";
-	}
-	process.stdout.write(output);
+	console.clear();
+	process.stdout.write(visible.join("\n"));
 }
 
 function suspend() {
