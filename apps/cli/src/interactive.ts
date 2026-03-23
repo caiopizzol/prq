@@ -40,44 +40,20 @@ function render(state: RenderState) {
 	const { result, selectedIndex, message, actionMenu } = state;
 	const termHeight = process.stdout.rows || 24;
 
-	// Clear screen and move cursor to top
 	process.stdout.write("\x1B[2J\x1B[H");
 
 	const lines: string[] = [];
 
-	// --- Top bar (shortcuts or action menu) ---
-	if (actionMenu) {
-		const pr = result.prs[selectedIndex];
-		lines.push(` ${chalk.bold("Actions")} for ${chalk.white(`#${pr.number}`)}`);
-		lines.push("");
-		for (let i = 0; i < actionMenu.length; i++) {
-			lines.push(`   ${chalk.white(String(i + 1))}. ${actionMenu[i].name}`);
-		}
-		lines.push("");
-		lines.push(` ${chalk.dim("1-9")} run action  ${chalk.white("q")} back`);
-	} else {
-		const pr = result.prs[selectedIndex];
-		const sLabel = pr?.category === "in-progress" ? "stop" : "start";
-		lines.push(
-			` ${chalk.dim("↑↓")} navigate  ${chalk.dim("←→")} page  ${chalk.white("r")} review  ${chalk.white("o")} open  ${chalk.white("n")} nudge  ${chalk.white("s")} ${sLabel}  ${chalk.white("c")} copy  ${chalk.white("a")} actions  ${chalk.white("q")} quit`,
-		);
-	}
-
-	if (message) {
-		lines.push(` ${message}`);
-	}
-
-	lines.push("");
 	lines.push(chalk.bold(` PRQ Status for ${result.user}`));
 	lines.push(chalk.dim(` ${"─".repeat(50)}`));
 
-	// --- Compute how many PRs fit ---
-	const headerUsed = lines.length;
-	const footerLines = 2; // blank + separator
-	const maxBodyLines = Math.max(4, termHeight - headerUsed - footerLines);
-	const maxPRs = Math.floor(maxBodyLines / 2); // each PR = 2 lines
+	// How many PRs fit (each PR = 2 lines title+detail, selected = 3 lines with shortcuts)
+	const headerLines = lines.length;
+	const footerLines = 3; // blank + indicator + separator
+	const maxBodyLines = Math.max(6, termHeight - headerLines - footerLines);
+	const maxPRs = Math.floor(maxBodyLines / 3); // worst case: selected PR takes 3 lines
 
-	// Ensure selected PR is in view window
+	// Keep selected PR in view
 	if (selectedIndex < state.viewStart) {
 		state.viewStart = selectedIndex;
 	}
@@ -86,56 +62,65 @@ function render(state: RenderState) {
 	}
 	state.viewStart = Math.max(
 		0,
-		Math.min(state.viewStart, result.prs.length - maxPRs),
+		Math.min(state.viewStart, Math.max(0, result.prs.length - maxPRs)),
 	);
 
 	const viewEnd = Math.min(result.prs.length, state.viewStart + maxPRs);
 
-	// --- Build grouped structure with flat indices ---
-	const grouped = new Map<
-		PRCategory,
-		{ pr: CategorizedPR; flatIdx: number }[]
-	>();
-	for (let i = 0; i < result.prs.length; i++) {
-		const pr = result.prs[i];
-		const list = grouped.get(pr.category) ?? [];
-		list.push({ pr, flatIdx: i });
-		grouped.set(pr.category, list);
+	// Group PRs for category counts
+	const categoryCounts = new Map<PRCategory, number>();
+	for (const pr of result.prs) {
+		categoryCounts.set(pr.category, (categoryCounts.get(pr.category) ?? 0) + 1);
 	}
 
-	// --- Render only PRs in the visible window ---
+	// Render visible PRs
 	let lastCategory: PRCategory | null = null;
 
-	for (let flatIdx = state.viewStart; flatIdx < viewEnd; flatIdx++) {
-		const pr = result.prs[flatIdx];
-		const isSelected = flatIdx === selectedIndex;
+	for (let i = state.viewStart; i < viewEnd; i++) {
+		const pr = result.prs[i];
+		const isSelected = i === selectedIndex;
 
-		// Show category header when category changes
 		if (pr.category !== lastCategory) {
-			const catConfig = CATEGORY_CONFIG[pr.category];
-			const catPrs = grouped.get(pr.category) ?? [];
+			const cfg = CATEGORY_CONFIG[pr.category];
+			const count = categoryCounts.get(pr.category) ?? 0;
 			lines.push("");
 			lines.push(
-				` ${catConfig.color(`${catConfig.icon} ${catConfig.label}`)} ${chalk.dim(`(${catPrs.length})`)}`,
+				` ${cfg.color(`${cfg.icon} ${cfg.label}`)} ${chalk.dim(`(${count})`)}`,
 			);
 			lastCategory = pr.category;
 		}
 
 		const arrow = isSelected ? chalk.yellow("›") : " ";
 		const draft = pr.isDraft ? chalk.dim(" [draft]") : "";
-		const maxTitle = 50;
 		const title =
-			pr.title.length > maxTitle
-				? `${pr.title.slice(0, maxTitle - 3)}...`
-				: pr.title;
+			pr.title.length > 50 ? `${pr.title.slice(0, 47)}...` : pr.title;
 
 		if (isSelected) {
-			const ref = chalk.white(`#${pr.number}`);
-			lines.push(` ${arrow} ${ref}  ${chalk.white(title)}${draft}`);
+			lines.push(
+				` ${arrow} ${chalk.white(`#${pr.number}`)}  ${chalk.white(title)}${draft}`,
+			);
 			lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
+
+			// Inline shortcuts or action menu
+			if (actionMenu) {
+				for (let j = 0; j < actionMenu.length; j++) {
+					lines.push(
+						`     ${chalk.white(String(j + 1))}. ${actionMenu[j].name}`,
+					);
+				}
+				lines.push(`     ${chalk.dim("1-9")} run  ${chalk.white("q")} back`);
+			} else {
+				const sLabel = pr.category === "in-progress" ? "stop" : "start";
+				lines.push(
+					chalk.dim(
+						`     r review  o open  n nudge  s ${sLabel}  c copy  a actions  q quit`,
+					),
+				);
+			}
 		} else {
-			const ref = chalk.dim(`#${pr.number}`);
-			lines.push(` ${arrow} ${ref}  ${chalk.dim(title)}${draft}`);
+			lines.push(
+				` ${arrow} ${chalk.dim(`#${pr.number}`)}  ${chalk.dim(title)}${draft}`,
+			);
 			lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
 		}
 	}
@@ -145,18 +130,21 @@ function render(state: RenderState) {
 		lines.push(chalk.green("  All clear! No PRs need your attention."));
 	}
 
-	// Scroll indicator
+	// Scroll indicator + navigation hint
+	lines.push("");
 	if (result.prs.length > maxPRs) {
-		lines.push("");
 		lines.push(
 			chalk.dim(
-				` showing ${state.viewStart + 1}-${viewEnd} of ${result.prs.length} PRs`,
+				` ${state.viewStart + 1}-${viewEnd} of ${result.prs.length}  ↑↓ navigate  ←→ page`,
 			),
 		);
+	} else {
+		lines.push(chalk.dim(` ${result.prs.length} PRs  ↑↓ navigate`));
 	}
 
-	lines.push("");
-	lines.push(chalk.dim(` ${"─".repeat(50)}`));
+	if (message) {
+		lines.push(` ${message}`);
+	}
 
 	process.stdout.write(lines.join("\n"));
 }
@@ -165,7 +153,6 @@ function suspend() {
 	process.stdin.setRawMode(false);
 	process.stdin.pause();
 	process.stdin.removeAllListeners("data");
-	// Show cursor and clear screen
 	process.stdout.write("\x1B[?25h\x1B[2J\x1B[H");
 }
 
@@ -236,7 +223,6 @@ export async function interactiveMode(
 		const onData = async (key: string) => {
 			const pr = result.prs[state.selectedIndex];
 
-			// Action menu mode
 			if (state.actionMenu) {
 				if (key === "q" || key === "\x1B" || key === "a") {
 					state.actionMenu = null;
@@ -263,7 +249,6 @@ export async function interactiveMode(
 				return;
 			}
 
-			// Normal mode
 			switch (key) {
 				case "q":
 				case "\x03":
