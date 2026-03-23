@@ -46,7 +46,9 @@ prq --no-interactive                       # plain text output
 
 Navigate your queue with keyboard shortcuts:
 
-- **↑↓** navigate  **←→** page up/down  **r** review  **o** open  **n** nudge  **s** start/stop  **c** copy url  **a** actions  **q** quit
+- **↑↓** navigate  **←→** page up/down  **/** search  **r** review  **o** open  **n** nudge  **s** start/stop  **c** copy url  **a** actions  **q** quit
+
+Press **/** to search — type a PR number, title, or author and the cursor jumps to the first match. **Enter** confirms, **Esc** cancels.
 
 Press **a** to open the actions menu — all actions (built-in and custom) are listed and accessible by number.
 

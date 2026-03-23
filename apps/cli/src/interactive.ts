@@ -34,6 +34,9 @@ interface RenderState {
 	message: string;
 	actionMenu: { name: string; template: string }[] | null;
 	viewStart: number;
+	searchMode: boolean;
+	searchBuffer: string;
+	preSearchIndex: number;
 }
 
 /**
@@ -156,7 +159,9 @@ function render(state: RenderState) {
 
 	// Footer
 	lines.push("");
-	if (actionMenu) {
+	if (state.searchMode) {
+		lines.push(` ${chalk.yellow("/")}${state.searchBuffer}${chalk.dim("▏")}`);
+	} else if (actionMenu) {
 		const pr = result.prs[selectedIndex];
 		lines.push(
 			` ${chalk.bold("Actions")} for ${chalk.white(`#${pr.number}`)}:  ${actionMenu.map((a, j) => `${chalk.white(String(j + 1))} ${a.name}`).join("  ")}  ${chalk.white("q")} back`,
@@ -165,7 +170,7 @@ function render(state: RenderState) {
 		const pr = result.prs[selectedIndex];
 		const sLabel = pr?.category === "in-progress" ? "stop" : "start";
 		lines.push(
-			` ${chalk.dim("r")} review  ${chalk.dim("o")} open  ${chalk.dim("n")} nudge  ${chalk.dim("s")} ${sLabel}  ${chalk.dim("c")} copy  ${chalk.dim("a")} actions  ${chalk.dim("q")} quit`,
+			` ${chalk.dim("/")} search  ${chalk.dim("r")} review  ${chalk.dim("o")} open  ${chalk.dim("n")} nudge  ${chalk.dim("s")} ${sLabel}  ${chalk.dim("c")} copy  ${chalk.dim("a")} actions  ${chalk.dim("q")} quit`,
 		);
 	}
 	if (result.prs.length > viewEnd - state.viewStart) {
@@ -183,6 +188,72 @@ function render(state: RenderState) {
 	// Hard cap: never exceed terminal height
 	const output = lines.slice(0, termHeight);
 	process.stdout.write(output.join("\n"));
+}
+
+export function findMatch(prs: CategorizedPR[], query: string): number {
+	if (!query) return -1;
+	const q = query.toLowerCase();
+
+	// Exact PR number match first
+	const num = parseInt(q.replace(/^#/, ""), 10);
+	if (!Number.isNaN(num)) {
+		const idx = prs.findIndex((pr) => pr.number === num);
+		if (idx !== -1) return idx;
+	}
+
+	// Substring match on number, title, or author
+	return prs.findIndex(
+		(pr) =>
+			String(pr.number).includes(q) ||
+			pr.title.toLowerCase().includes(q) ||
+			pr.author.toLowerCase().includes(q),
+	);
+}
+
+export interface SearchState {
+	searchMode: boolean;
+	searchBuffer: string;
+	selectedIndex: number;
+	preSearchIndex: number;
+	message: string;
+}
+
+export function handleSearchKey(
+	state: SearchState,
+	key: string,
+	prs: CategorizedPR[],
+): void {
+	const applySearch = () => {
+		const match = findMatch(prs, state.searchBuffer);
+		if (match !== -1) {
+			state.selectedIndex = match;
+			state.message = "";
+		} else {
+			state.message = "no match";
+		}
+	};
+
+	if (key === "\r") {
+		state.searchMode = false;
+		state.searchBuffer = "";
+		state.message = "";
+	} else if (key === "\x1B" || key === "\x03") {
+		state.searchMode = false;
+		state.searchBuffer = "";
+		state.selectedIndex = state.preSearchIndex;
+		state.message = "";
+	} else if (key === "\x7F" || key === "\b") {
+		state.searchBuffer = state.searchBuffer.slice(0, -1);
+		if (state.searchBuffer) {
+			applySearch();
+		} else {
+			state.selectedIndex = state.preSearchIndex;
+			state.message = "";
+		}
+	} else if (key.length === 1 && key >= " ") {
+		state.searchBuffer += key;
+		applySearch();
+	}
 }
 
 function suspend() {
@@ -246,6 +317,9 @@ export async function interactiveMode(
 		message: "",
 		actionMenu: null,
 		viewStart: 0,
+		searchMode: false,
+		searchBuffer: "",
+		preSearchIndex: 0,
 	};
 
 	if (!process.stdin.isTTY) {
@@ -258,6 +332,12 @@ export async function interactiveMode(
 	return new Promise((resolve) => {
 		const onData = async (key: string) => {
 			const pr = result.prs[state.selectedIndex];
+
+			if (state.searchMode) {
+				handleSearchKey(state, key, state.result.prs);
+				render(state);
+				return;
+			}
 
 			if (state.actionMenu) {
 				if (key === "q" || key === "\x1B" || key === "a") {
@@ -387,6 +467,13 @@ export async function interactiveMode(
 						name,
 						template,
 					}));
+					state.message = "";
+					break;
+				}
+				case "/": {
+					state.searchMode = true;
+					state.searchBuffer = "";
+					state.preSearchIndex = state.selectedIndex;
 					state.message = "";
 					break;
 				}
