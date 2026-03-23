@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
 	applyInProgress,
+	applyNudged,
 	getNudgedAt,
 	loadInProgress,
 	markNudged,
@@ -133,5 +134,39 @@ describe("nudge state", () => {
 		markNudged({ repo: "org/repo", number: 10 });
 		expect(loadInProgress().has("org/repo#10")).toBe(true);
 		expect(getNudgedAt({ repo: "org/repo", number: 10 })).not.toBeNull();
+	});
+});
+
+describe("applyNudged", () => {
+	test("returns same array when no nudged state", () => {
+		const prs = [makePR({ number: 1 }), makePR({ number: 2 })];
+		const result = applyNudged(prs);
+		expect(result).toEqual(prs);
+	});
+
+	test("changes category to nudged for nudged PRs", () => {
+		markNudged({ repo: "org/repo", number: 10 });
+		const prs = [
+			makePR({ number: 10, category: "stale" }),
+			makePR({ number: 20, category: "requested" }),
+		];
+		const result = applyNudged(prs);
+		expect(result[0].category).toBe("nudged");
+		expect(result[0].detail).toMatch(/^Nudged /);
+		expect(result[1].category).toBe("requested");
+	});
+
+	test("does not override in-progress category", () => {
+		markNudged({ repo: "org/repo", number: 10 });
+		const prs = [makePR({ number: 10, category: "in-progress" })];
+		const result = applyNudged(prs);
+		expect(result[0].category).toBe("in-progress");
+	});
+
+	test("cleans up nudgedAt for PRs no longer in queue", () => {
+		markNudged({ repo: "org/repo", number: 99 });
+		expect(getNudgedAt({ repo: "org/repo", number: 99 })).not.toBeNull();
+		applyNudged([makePR({ number: 1 })]);
+		expect(getNudgedAt({ repo: "org/repo", number: 99 })).toBeNull();
 	});
 });

@@ -1,5 +1,6 @@
 export type PRCategory =
 	| "in-progress"
+	| "nudged"
 	| "needs-re-review"
 	| "open"
 	| "requested"

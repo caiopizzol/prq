@@ -10,6 +10,11 @@ export const CATEGORY_CONFIG: Record<
 		label: "In Progress",
 		color: chalk.cyan,
 	},
+	nudged: {
+		icon: "✦",
+		label: "Nudged",
+		color: chalk.magenta,
+	},
 	"needs-re-review": {
 		icon: "◆",
 		label: "Needs Re-review",
@@ -31,6 +36,7 @@ export const CATEGORY_CONFIG: Record<
 
 export const CATEGORY_ORDER: PRCategory[] = [
 	"in-progress",
+	"nudged",
 	"needs-re-review",
 	"requested",
 	"stale",

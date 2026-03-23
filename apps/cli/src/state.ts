@@ -93,6 +93,39 @@ export function applyInProgress(prs: CategorizedPR[]): CategorizedPR[] {
 	);
 }
 
+export function applyNudged(prs: CategorizedPR[]): CategorizedPR[] {
+	const state = load();
+	const nudgedKeys = new Map(
+		Object.entries(state)
+			.filter(([, v]) => v.nudgedAt)
+			.map(([k, v]) => [k, v.nudgedAt as string]),
+	);
+	if (nudgedKeys.size === 0) return prs;
+
+	// Clean up nudgedAt for PRs no longer in the queue (merged/closed)
+	const activeKeys = new Set(prs.map(prKey));
+	let changed = false;
+	for (const k of Array.from(nudgedKeys.keys())) {
+		if (!activeKeys.has(k)) {
+			delete state[k]?.nudgedAt;
+			changed = true;
+		}
+	}
+	if (changed) save(state);
+
+	return prs.map((pr) => {
+		const nudgedAt = nudgedKeys.get(prKey(pr));
+		if (!nudgedAt) return pr;
+		// Don't override in-progress
+		if (pr.category === "in-progress") return pr;
+		const days = Math.floor(
+			(Date.now() - new Date(nudgedAt).getTime()) / 86_400_000,
+		);
+		const ago = days === 0 ? "today" : `${days}d ago`;
+		return { ...pr, category: "nudged" as const, detail: `Nudged ${ago}` };
+	});
+}
+
 // --- Nudge ---
 
 export function getNudgedAt(pr: {

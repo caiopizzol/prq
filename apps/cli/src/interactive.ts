@@ -9,7 +9,7 @@ import {
 import { CATEGORY_CONFIG, CATEGORY_ORDER } from "./categories.js";
 import type { Config } from "./config.js";
 import type { ResolvedPR } from "./identifier.js";
-import { applyInProgress, toggleInProgress } from "./state.js";
+import { applyInProgress, applyNudged, toggleInProgress } from "./state.js";
 import type { CategorizedPR, PRCategory, StatusResult } from "./types.js";
 
 function toResolvedPR(pr: CategorizedPR): ResolvedPR {
@@ -343,7 +343,7 @@ export async function interactiveMode(
 					const started = toggleInProgress(pr);
 					state.result = {
 						...state.result,
-						prs: applyInProgress(state.sourcePrs),
+						prs: applyNudged(applyInProgress(state.sourcePrs)),
 					};
 					const newTotal = state.result.prs.length;
 					if (state.selectedIndex >= newTotal) {

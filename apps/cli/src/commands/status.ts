@@ -12,7 +12,7 @@ import {
 import type { PRBasic } from "../github/types.js";
 import { interactiveMode } from "../interactive.js";
 import { formatStatus } from "../output.js";
-import { applyInProgress } from "../state.js";
+import { applyInProgress, applyNudged } from "../state.js";
 import type { StatusResult } from "../types.js";
 
 export async function statusCommand(
@@ -58,8 +58,8 @@ export async function statusCommand(
 		openPRsEnriched,
 	);
 
-	// Phase 4: Apply local in-progress state
-	const prs = applyInProgress(categorized);
+	// Phase 4: Apply local state overlays
+	const prs = applyNudged(applyInProgress(categorized));
 
 	const result: StatusResult = {
 		user,
