@@ -1,3 +1,4 @@
+import { sortByCategory } from "../categories.js";
 import { categorize } from "../categorize.js";
 import type { Config } from "../config.js";
 import { getAuthenticatedUser } from "../github/client.js";
@@ -59,7 +60,13 @@ export async function statusCommand(
 	);
 
 	// Phase 4: Apply local state overlays
-	const prs = applyNudged(applyInProgress(categorized));
+	const reviewTimestamps = new Map<string, string>();
+	for (const pr of reviewedPRs) {
+		reviewTimestamps.set(`${pr.repo}#${pr.number}`, pr.userLastReviewedAt);
+	}
+	const prs = sortByCategory(
+		applyNudged(applyInProgress(categorized, reviewTimestamps)),
+	);
 
 	const result: StatusResult = {
 		user,

@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import type { PRCategory } from "./types.js";
+import type { CategorizedPR, PRCategory } from "./types.js";
 
 export const CATEGORY_CONFIG: Record<
 	PRCategory,
@@ -43,3 +43,15 @@ export const CATEGORY_ORDER: PRCategory[] = [
 	"waiting-on-others",
 	"open",
 ];
+
+const CATEGORY_INDEX = new Map(CATEGORY_ORDER.map((c, i) => [c, i]));
+
+export function sortByCategory(prs: CategorizedPR[]): CategorizedPR[] {
+	return [...prs].sort((a, b) => {
+		const catDiff =
+			(CATEGORY_INDEX.get(a.category) ?? 99) -
+			(CATEGORY_INDEX.get(b.category) ?? 99);
+		if (catDiff !== 0) return catDiff;
+		return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+	});
+}

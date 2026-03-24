@@ -6,7 +6,7 @@ import {
 	listActions,
 	runActionWithHooks,
 } from "./actions.js";
-import { CATEGORY_CONFIG } from "./categories.js";
+import { CATEGORY_CONFIG, sortByCategory } from "./categories.js";
 import type { Config } from "./config.js";
 import type { ResolvedPR } from "./identifier.js";
 import { applyInProgress, applyNudged, toggleInProgress } from "./state.js";
@@ -450,12 +450,16 @@ export async function interactiveMode(
 					const started = toggleInProgress(pr);
 					state.result = {
 						...state.result,
-						prs: applyNudged(applyInProgress(state.sourcePrs)),
+						prs: sortByCategory(applyNudged(applyInProgress(state.sourcePrs))),
 					};
 					const newTotal = state.result.prs.length;
-					if (state.selectedIndex >= newTotal) {
-						state.selectedIndex = Math.max(0, newTotal - 1);
-					}
+					const newIndex = state.result.prs.findIndex(
+						(p) => p.repo === pr.repo && p.number === pr.number,
+					);
+					state.selectedIndex =
+						newIndex >= 0
+							? newIndex
+							: Math.min(state.selectedIndex, Math.max(0, newTotal - 1));
 					state.message = started
 						? chalk.cyan(`started: ${pr.repo}#${pr.number}`)
 						: chalk.dim(`unmarked: ${pr.repo}#${pr.number}`);

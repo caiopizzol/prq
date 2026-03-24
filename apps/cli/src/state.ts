@@ -10,7 +10,7 @@ const STATE_DIR = path.join(
 const STATE_PATH = path.join(STATE_DIR, "state.json");
 
 interface PRState {
-	inProgress?: boolean;
+	inProgress?: string | boolean; // ISO timestamp (new) or true (legacy)
 	nudgedAt?: string;
 }
 
@@ -60,25 +60,45 @@ export function toggleInProgress(pr: CategorizedPR): boolean {
 		delete entry.inProgress;
 		state[k] = entry;
 	} else {
-		state[k] = { ...entry, inProgress: true };
+		state[k] = { ...entry, inProgress: new Date().toISOString() };
 	}
 	save(state);
 	return !!state[k]?.inProgress;
 }
 
-export function applyInProgress(prs: CategorizedPR[]): CategorizedPR[] {
+export function applyInProgress(
+	prs: CategorizedPR[],
+	reviewTimestamps?: Map<string, string>,
+): CategorizedPR[] {
 	const state = load();
-	const inProgressKeys = new Set(
+	const inProgressKeys = new Map(
 		Object.entries(state)
 			.filter(([, v]) => v.inProgress)
-			.map(([k]) => k),
+			.map(([k, v]) => [k, v.inProgress as string | boolean]),
 	);
 	if (inProgressKeys.size === 0) return prs;
 
+	let changed = false;
+
+	// Auto-clear: if user submitted a review after marking in-progress
+	if (reviewTimestamps) {
+		for (const [k, startedAt] of Array.from(inProgressKeys)) {
+			if (typeof startedAt !== "string") continue; // legacy boolean, skip
+			const reviewedAt = reviewTimestamps.get(k);
+			if (
+				reviewedAt &&
+				new Date(reviewedAt).getTime() > new Date(startedAt).getTime()
+			) {
+				delete state[k]?.inProgress;
+				inProgressKeys.delete(k);
+				changed = true;
+			}
+		}
+	}
+
 	// Clean up keys for PRs no longer in the queue (merged/closed)
 	const activeKeys = new Set(prs.map(prKey));
-	let changed = false;
-	for (const k of Array.from(inProgressKeys)) {
+	for (const k of Array.from(inProgressKeys.keys())) {
 		if (!activeKeys.has(k)) {
 			delete state[k]?.inProgress;
 			changed = true;

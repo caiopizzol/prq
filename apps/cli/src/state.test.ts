@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
+import { sortByCategory } from "./categories.js";
 import {
 	applyInProgress,
 	applyNudged,
@@ -113,6 +114,60 @@ describe("applyInProgress", () => {
 		applyInProgress([makePR({ number: 1 })]);
 		expect(loadInProgress().has("org/repo#99")).toBe(false);
 	});
+
+	test("auto-clears when review was submitted after marking in-progress", () => {
+		const pr = makePR({ number: 10, category: "stale" });
+		toggleInProgress(pr);
+		expect(loadInProgress().has("org/repo#10")).toBe(true);
+
+		// Simulate a review submitted after marking in-progress
+		const reviewTimestamps = new Map([
+			["org/repo#10", new Date(Date.now() + 60_000).toISOString()],
+		]);
+
+		const prs = [makePR({ number: 10, category: "stale" })];
+		const result = applyInProgress(prs, reviewTimestamps);
+
+		expect(result[0].category).toBe("stale"); // not overridden
+		expect(loadInProgress().has("org/repo#10")).toBe(false); // cleared from state
+	});
+
+	test("does not auto-clear when review was before marking in-progress", () => {
+		const pr = makePR({ number: 10, category: "stale" });
+
+		// Simulate a review submitted before marking in-progress
+		const reviewTimestamps = new Map([
+			["org/repo#10", new Date(Date.now() - 60_000).toISOString()],
+		]);
+
+		toggleInProgress(pr);
+
+		const prs = [makePR({ number: 10, category: "stale" })];
+		const result = applyInProgress(prs, reviewTimestamps);
+
+		expect(result[0].category).toBe("in-progress");
+		expect(loadInProgress().has("org/repo#10")).toBe(true);
+	});
+
+	test("handles legacy boolean inProgress without auto-clearing", () => {
+		// Write legacy format directly
+		fs.mkdirSync(STATE_DIR, { recursive: true });
+		fs.writeFileSync(
+			STATE_PATH,
+			JSON.stringify({ "org/repo#10": { inProgress: true } }),
+		);
+
+		const reviewTimestamps = new Map([
+			["org/repo#10", new Date().toISOString()],
+		]);
+
+		const prs = [makePR({ number: 10, category: "stale" })];
+		const result = applyInProgress(prs, reviewTimestamps);
+
+		// Legacy boolean can't be compared — should stay in-progress
+		expect(result[0].category).toBe("in-progress");
+		expect(loadInProgress().has("org/repo#10")).toBe(true);
+	});
 });
 
 describe("nudge state", () => {
@@ -168,5 +223,45 @@ describe("applyNudged", () => {
 		expect(getNudgedAt({ repo: "org/repo", number: 99 })).not.toBeNull();
 		applyNudged([makePR({ number: 1 })]);
 		expect(getNudgedAt({ repo: "org/repo", number: 99 })).toBeNull();
+	});
+});
+
+describe("sortByCategory", () => {
+	test("groups PRs by category order", () => {
+		const prs = [
+			makePR({ number: 1, category: "open" }),
+			makePR({ number: 2, category: "in-progress" }),
+			makePR({ number: 3, category: "requested" }),
+			makePR({ number: 4, category: "in-progress" }),
+		];
+		const sorted = sortByCategory(prs);
+		expect(sorted.map((p) => p.category)).toEqual([
+			"in-progress",
+			"in-progress",
+			"requested",
+			"open",
+		]);
+	});
+
+	test("sorts by updatedAt within same category", () => {
+		const older = new Date("2026-01-01").toISOString();
+		const newer = new Date("2026-03-01").toISOString();
+		const prs = [
+			makePR({ number: 1, category: "requested", updatedAt: older }),
+			makePR({ number: 2, category: "requested", updatedAt: newer }),
+		];
+		const sorted = sortByCategory(prs);
+		expect(sorted[0].number).toBe(2); // newer first
+		expect(sorted[1].number).toBe(1);
+	});
+
+	test("does not mutate original array", () => {
+		const prs = [
+			makePR({ number: 1, category: "open" }),
+			makePR({ number: 2, category: "in-progress" }),
+		];
+		const sorted = sortByCategory(prs);
+		expect(prs[0].category).toBe("open"); // original unchanged
+		expect(sorted[0].category).toBe("in-progress");
 	});
 });
