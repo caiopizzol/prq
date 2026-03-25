@@ -307,7 +307,6 @@ export async function interactiveMode(
 		return;
 	}
 
-	const total = result.prs.length;
 	const allActions = listActions(config);
 
 	const state: RenderState = {
@@ -331,7 +330,7 @@ export async function interactiveMode(
 
 	return new Promise((resolve) => {
 		const onData = async (key: string) => {
-			const pr = result.prs[state.selectedIndex];
+			const pr = state.result.prs[state.selectedIndex];
 
 			if (state.searchMode) {
 				handleSearchKey(state, key, state.result.prs);
@@ -377,7 +376,10 @@ export async function interactiveMode(
 					state.message = "";
 					break;
 				case "\x1B[B":
-					state.selectedIndex = Math.min(total - 1, state.selectedIndex + 1);
+					state.selectedIndex = Math.min(
+						state.result.prs.length - 1,
+						state.selectedIndex + 1,
+					);
 					state.message = "";
 					break;
 				case "\x1B[D":
@@ -386,7 +388,7 @@ export async function interactiveMode(
 					break;
 				case "\x1B[C":
 					state.selectedIndex = Math.min(
-						total - 1,
+						state.result.prs.length - 1,
 						state.selectedIndex + PAGE_SIZE,
 					);
 					state.message = "";
