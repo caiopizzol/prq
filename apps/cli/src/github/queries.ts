@@ -172,9 +172,13 @@ export async function enrichWithReviews(
 
 		const userLastReviewedAt = userReviews[0].submitted_at as string;
 
-		// Find latest commit
+		// Find latest commit by the PR author (ignore rebases/merges by others)
 		const commits = commitsRes.data;
-		const latestCommit = commits[commits.length - 1];
+		const authorCommits = commits.filter((c) => c.author?.login === pr.author);
+		const latestCommit =
+			authorCommits.length > 0
+				? authorCommits[authorCommits.length - 1]
+				: commits[commits.length - 1];
 		const latestCommitAt =
 			latestCommit?.commit.committer?.date ??
 			latestCommit?.commit.author?.date ??
