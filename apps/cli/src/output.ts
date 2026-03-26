@@ -7,9 +7,11 @@ function formatPR(pr: CategorizedPR): string {
 	const prRef = chalk.cyan(`${pr.repo}#${pr.number}`);
 	const title = pr.title.length > 60 ? `${pr.title.slice(0, 57)}...` : pr.title;
 
+	const author = chalk.dim(`@${pr.author}`);
+
 	return [
 		`  ${prRef}  ${title}${draft}`,
-		`    ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`,
+		`    ${chalk.dim("↳")} ${author} ${chalk.dim("·")} ${chalk.dim(pr.detail)}`,
 	].join("\n");
 }
 

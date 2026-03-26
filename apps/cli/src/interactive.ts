@@ -139,16 +139,20 @@ function render(state: RenderState) {
 		const title =
 			pr.title.length > 50 ? `${pr.title.slice(0, 47)}...` : pr.title;
 
+		const author = chalk.dim(`@${pr.author}`);
+
+		const detail = `${author} ${chalk.dim("·")} ${chalk.dim(pr.detail)}`;
+
 		if (isSelected) {
 			lines.push(
 				` ${arrow} ${chalk.white(`#${pr.number}`)}  ${chalk.white(title)}${draft}`,
 			);
-			lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
+			lines.push(`     ${chalk.dim("↳")} ${detail}`);
 		} else {
 			lines.push(
 				` ${arrow} ${chalk.dim(`#${pr.number}`)}  ${chalk.dim(title)}${draft}`,
 			);
-			lines.push(`     ${chalk.dim("↳")} ${chalk.dim(pr.detail)}`);
+			lines.push(`     ${chalk.dim("↳")} ${detail}`);
 		}
 	}
 
