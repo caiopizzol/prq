@@ -39,6 +39,28 @@ interface RenderState {
 	preSearchIndex: number;
 }
 
+/** Recompute categorized PR list from source PRs and adjust selection to follow a target PR. */
+export function recomputeState(
+	state: {
+		result: StatusResult;
+		sourcePrs: CategorizedPR[];
+		selectedIndex: number;
+	},
+	targetPR: { repo: string; number: number },
+): void {
+	state.result = {
+		...state.result,
+		prs: sortByCategory(applyNudged(applyInProgress(state.sourcePrs))),
+	};
+	const newIndex = state.result.prs.findIndex(
+		(p) => p.repo === targetPR.repo && p.number === targetPR.number,
+	);
+	state.selectedIndex =
+		newIndex >= 0
+			? newIndex
+			: Math.min(state.selectedIndex, Math.max(0, state.result.prs.length - 1));
+}
+
 /**
  * Count how many output lines a range of PRs will produce,
  * including category headers when the category changes.
@@ -282,7 +304,7 @@ async function runAction(
 	pr: CategorizedPR,
 	state: RenderState,
 	onData: (key: string) => void,
-): Promise<string> {
+): Promise<{ message: string; ok: boolean }> {
 	const context = buildContext(toResolvedPR(pr), pr.category, pr.detail);
 	const cmd = interpolate(template, context);
 
@@ -294,10 +316,13 @@ async function runAction(
 	try {
 		await runActionWithHooks(actionName, cmd, context);
 		resume(state, onData);
-		return chalk.green(`${actionName}: ${pr.repo}#${pr.number}`);
+		return {
+			message: chalk.green(`${actionName}: ${pr.repo}#${pr.number}`),
+			ok: true,
+		};
 	} catch {
 		resume(state, onData);
-		return chalk.red(`${actionName} failed`);
+		return { message: chalk.red(`${actionName} failed`), ok: false };
 	}
 }
 
@@ -354,14 +379,18 @@ export async function interactiveMode(
 					const idx = parseInt(key, 10);
 					if (idx >= 1 && idx <= state.actionMenu.length) {
 						const action = state.actionMenu[idx - 1];
-						state.message = await runAction(
+						const result = await runAction(
 							action.name,
 							action.template,
 							pr,
 							state,
 							onData,
 						);
+						state.message = result.message;
 						state.actionMenu = null;
+						if (action.name === "nudge" && result.ok) {
+							recomputeState(state, pr);
+						}
 					}
 				}
 				render(state);
@@ -401,26 +430,18 @@ export async function interactiveMode(
 				case "o": {
 					const template = allActions.open;
 					if (template) {
-						state.message = await runAction(
-							"open",
-							template,
-							pr,
-							state,
-							onData,
-						);
+						state.message = (
+							await runAction("open", template, pr, state, onData)
+						).message;
 					}
 					break;
 				}
 				case "r": {
 					const template = allActions.review;
 					if (template) {
-						state.message = await runAction(
-							"review",
-							template,
-							pr,
-							state,
-							onData,
-						);
+						state.message = (
+							await runAction("review", template, pr, state, onData)
+						).message;
 					}
 					break;
 				}
@@ -433,7 +454,17 @@ export async function interactiveMode(
 						state.message = chalk.yellow("no reviewers to nudge");
 						break;
 					}
-					state.message = await runAction("nudge", template, pr, state, onData);
+					const nudgeResult = await runAction(
+						"nudge",
+						template,
+						pr,
+						state,
+						onData,
+					);
+					state.message = nudgeResult.message;
+					if (nudgeResult.ok) {
+						recomputeState(state, pr);
+					}
 					break;
 				}
 				case "c": {
@@ -454,18 +485,7 @@ export async function interactiveMode(
 				}
 				case "s": {
 					const started = toggleInProgress(pr);
-					state.result = {
-						...state.result,
-						prs: sortByCategory(applyNudged(applyInProgress(state.sourcePrs))),
-					};
-					const newTotal = state.result.prs.length;
-					const newIndex = state.result.prs.findIndex(
-						(p) => p.repo === pr.repo && p.number === pr.number,
-					);
-					state.selectedIndex =
-						newIndex >= 0
-							? newIndex
-							: Math.min(state.selectedIndex, Math.max(0, newTotal - 1));
+					recomputeState(state, pr);
 					state.message = started
 						? chalk.cyan(`started: ${pr.repo}#${pr.number}`)
 						: chalk.dim(`unmarked: ${pr.repo}#${pr.number}`);

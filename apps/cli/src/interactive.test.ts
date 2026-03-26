@@ -1,6 +1,14 @@
-import { describe, expect, test } from "bun:test";
-import { findMatch, handleSearchKey, type SearchState } from "./interactive.js";
-import type { CategorizedPR } from "./types.js";
+import { afterEach, describe, expect, test } from "bun:test";
+import fs from "node:fs";
+import path from "node:path";
+import {
+	findMatch,
+	handleSearchKey,
+	recomputeState,
+	type SearchState,
+} from "./interactive.js";
+import { markNudged, toggleInProgress } from "./state.js";
+import type { CategorizedPR, StatusResult } from "./types.js";
 
 function makePR(overrides: Partial<CategorizedPR> = {}): CategorizedPR {
 	return {
@@ -190,5 +198,115 @@ describe("handleSearchKey", () => {
 		handleSearchKey(state, "\x01", prs); // Ctrl+A
 		expect(state.searchBuffer).toBe("");
 		expect(state.selectedIndex).toBe(0);
+	});
+});
+
+const STATE_DIR = path.join(process.env.HOME ?? "", ".config", "prq");
+const STATE_PATH = path.join(STATE_DIR, "state.json");
+
+function makeResult(prs: CategorizedPR[], user = "me"): StatusResult {
+	return { user, timestamp: new Date().toISOString(), prs };
+}
+
+describe("recomputeState", () => {
+	afterEach(() => {
+		try {
+			fs.unlinkSync(STATE_PATH);
+		} catch {}
+	});
+
+	test("moves nudged PR to nudged category after markNudged", () => {
+		const stalePR = makePR({
+			number: 42,
+			category: "stale",
+			detail: "No activity for 5 days",
+		});
+		const requestedPR = makePR({
+			number: 10,
+			category: "requested",
+			detail: "Requested 1d ago",
+		});
+		const sourcePrs = [stalePR, requestedPR];
+
+		const state = {
+			result: makeResult([stalePR, requestedPR]),
+			sourcePrs,
+			selectedIndex: 0,
+		};
+
+		// Simulate what the action hook does after a successful nudge
+		markNudged({ repo: "org/repo", number: 42 });
+		recomputeState(state, stalePR);
+
+		const nudgedPR = state.result.prs.find((p) => p.number === 42);
+		expect(nudgedPR).toBeDefined();
+		expect(nudgedPR?.category).toBe("nudged");
+		expect(nudgedPR?.detail).toMatch(/^Nudged /);
+	});
+
+	test("moves in-progress PR to in-progress category after toggle", () => {
+		const stalePR = makePR({
+			number: 42,
+			category: "stale",
+			detail: "No activity for 5 days",
+		});
+		const sourcePrs = [stalePR];
+
+		const state = {
+			result: makeResult([stalePR]),
+			sourcePrs,
+			selectedIndex: 0,
+		};
+
+		toggleInProgress(stalePR);
+		recomputeState(state, stalePR);
+
+		expect(state.result.prs[0].category).toBe("in-progress");
+	});
+
+	test("selectedIndex follows target PR to new position", () => {
+		// Order: in-progress comes before stale in category sort
+		const stalePR = makePR({
+			number: 42,
+			repo: "org/repo",
+			category: "stale",
+		});
+		const requestedPR = makePR({
+			number: 10,
+			repo: "org/repo",
+			category: "requested",
+		});
+		// Source order: requested (idx 0), stale (idx 1)
+		const sourcePrs = [requestedPR, stalePR];
+
+		const state = {
+			result: makeResult(sourcePrs),
+			sourcePrs,
+			selectedIndex: 1, // pointing at stalePR
+		};
+
+		// Mark stalePR as nudged — it should move to the nudged category
+		markNudged({ repo: "org/repo", number: 42 });
+		recomputeState(state, stalePR);
+
+		// selectedIndex should follow PR #42 to its new position
+		const newPR = state.result.prs[state.selectedIndex];
+		expect(newPR.number).toBe(42);
+	});
+
+	test("selectedIndex clamped when target PR disappears", () => {
+		const pr1 = makePR({ number: 1 });
+		const pr2 = makePR({ number: 2 });
+		const sourcePrs = [pr1, pr2];
+
+		const state = {
+			result: makeResult(sourcePrs),
+			sourcePrs,
+			selectedIndex: 5, // out of range
+		};
+
+		// Target PR not in list — selectedIndex should clamp
+		recomputeState(state, { repo: "org/gone", number: 999 });
+		expect(state.selectedIndex).toBeLessThan(state.result.prs.length);
 	});
 });
