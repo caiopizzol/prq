@@ -16,7 +16,6 @@
 	--faint: #2a2a32;
 	--accent: #a78bfa;
 	--mono: "JetBrains Mono", monospace;
-	--sans: "Inter", system-ui, sans-serif;
 	--sym-y: #facc15;
 	--sym-g: #4ade80;
 	--sym-r: #fb7185;
@@ -29,9 +28,8 @@ html {
 body {
 	background: var(--bg);
 	color: var(--text);
-	font-family: var(--sans);
+	font-family: var(--mono);
 	-webkit-font-smoothing: antialiased;
-	overflow-x: hidden;
 }
 
 ::selection {
@@ -39,7 +37,7 @@ body {
 }
 
 .page {
-	max-width: 600px;
+	max-width: 560px;
 	margin: 0 auto;
 	padding: 0 32px;
 }
@@ -50,135 +48,71 @@ hr {
 	margin: 0;
 }
 
-/* ── Banner ── */
-.banner {
+/* ── Badge ── */
+.badge {
+	margin-top: 80px;
 	display: inline-flex;
 	align-items: center;
-	gap: 10px;
-	font-family: var(--mono);
+	gap: 8px;
 	font-size: 12px;
-	color: var(--text);
+	color: var(--accent);
 	text-decoration: none;
-	padding: 6px 14px;
-	border: 1px solid var(--accent);
+	padding: 5px 12px;
+	border: 1px solid var(--faint);
 	border-radius: 100px;
-	margin-top: 48px;
-	background: rgba(167, 139, 250, 0.12);
 	transition:
 		border-color 0.2s,
-		background 0.2s,
-		box-shadow 0.2s;
-	box-shadow: 0 0 12px rgba(167, 139, 250, 0.2);
+		background 0.2s;
 }
 
-.banner:hover {
-	background: rgba(167, 139, 250, 0.18);
-	box-shadow: 0 0 20px rgba(167, 139, 250, 0.35);
+.badge:hover {
+	border-color: var(--accent);
+	background: rgba(167, 139, 250, 0.08);
 }
 
-.banner-tag {
-	font-size: 10px;
-	font-weight: 600;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-	color: var(--accent);
+.badge-version {
+	color: var(--mid);
 }
 
-.banner-text {
-	color: rgba(167, 139, 250, 0.8);
-}
-
-.banner-arrow {
-	color: var(--accent);
+.badge-arrow {
+	color: var(--faint);
 	transition: color 0.2s;
 }
 
-.banner:hover .banner-arrow {
-	color: var(--text);
-}
-
-/* ── Hero ── */
-.hero {
-	padding: 80px 0 48px;
-}
-
-.hero-logo {
-	font-family: var(--mono);
-	font-size: 16px;
-	font-weight: 800;
-	color: var(--mid);
-	letter-spacing: -0.5px;
-	margin-bottom: 64px;
-}
-
-.hero-logo span {
+.badge:hover .badge-arrow {
 	color: var(--accent);
 }
 
-.hero-tagline {
-	font-family: var(--mono);
-	font-size: 14px;
-	font-weight: 400;
-	color: var(--mid);
-	letter-spacing: -0.3px;
+/* ── Story ── */
+.story {
+	padding: 48px 0 80px;
 }
 
-/* ── Problem ── */
-.problem {
-	padding: 0 0 100px;
-}
-
-.problem p {
-	font-family: var(--mono);
-	font-size: 16px;
+.story p {
+	font-size: 15px;
 	font-weight: 400;
-	line-height: 2.1;
+	line-height: 2;
 	color: var(--dim);
-	margin-bottom: 24px;
+	margin-bottom: 20px;
 }
 
-.problem p:last-child {
+.story p:last-child {
 	margin-bottom: 0;
 }
-.problem em {
+
+.story em {
 	font-style: normal;
 	color: var(--text);
 	font-weight: 500;
 }
 
-/* ── Pivot ── */
-.pivot {
+.story .fade {
+	color: var(--faint);
+}
+
+/* ── Terminal ── */
+.terminal-section {
 	padding: 80px 0;
-	text-align: center;
-}
-
-.pivot-text {
-	font-family: var(--mono);
-	font-size: 22px;
-	font-weight: 600;
-	color: var(--text);
-	letter-spacing: -0.5px;
-}
-
-/* ── Scroll-locked Terminal ── */
-.terminal-scroll-container {
-	height: 250vh;
-	position: relative;
-}
-
-.terminal-sticky {
-	position: sticky;
-	top: 0;
-	height: 100vh;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 0 32px;
-}
-
-.terminal-wrapper {
-	width: 100%;
-	max-width: 600px;
 }
 
 .terminal {
@@ -206,170 +140,22 @@ hr {
 
 .terminal-body {
 	padding: 24px;
-	font-family: var(--mono);
 	font-size: 13.5px;
 	line-height: 2;
 	color: var(--mid);
-	min-height: 380px;
 }
 
 .t-white {
 	color: var(--text);
 	font-weight: 600;
 }
-.t-bright {
-	color: var(--mid);
-}
+
 .t-dim {
 	color: var(--dim);
 }
 
-/* Lines hidden by default, revealed by scroll */
-.line {
-	opacity: 0;
-	transform: translateY(4px);
-	transition:
-		opacity 0.2s ease,
-		transform 0.2s ease;
-}
-
-.line.visible {
-	opacity: 1;
-	transform: translateY(0);
-}
-
-.cursor {
-	display: inline-block;
-	width: 8px;
-	height: 16px;
-	background: var(--text);
-	vertical-align: text-bottom;
-	animation: blink 1s step-end infinite;
-}
-
-@keyframes blink {
-	0%,
-	100% {
-		opacity: 1;
-	}
-	50% {
-		opacity: 0;
-	}
-}
-
-.typing-text {
-	display: inline;
-}
-
-/* ── Actions ── */
-.actions-section {
-	padding: 80px 0;
-}
-
-.actions-label {
-	font-family: var(--mono);
-	font-size: 16px;
-	font-weight: 500;
-	color: var(--mid);
-	margin-bottom: 32px;
-}
-
-.actions-list {
-	display: flex;
-	flex-direction: column;
-	gap: 0;
-}
-
-.action-row {
-	display: flex;
-	justify-content: space-between;
-	align-items: baseline;
-	padding: 14px 0;
-	border-bottom: 1px solid var(--faint);
-	font-family: var(--mono);
-	font-size: 14px;
-}
-
-.action-row:first-child {
-	border-top: 1px solid var(--faint);
-}
-
-.action-cmd {
-	color: var(--mid);
-}
-
-.action-desc {
-	color: var(--dim);
-	font-size: 13px;
-}
-
-/* ── Configure ── */
-.configure-section {
-	padding: 80px 0;
-}
-
-.config-value {
-	color: var(--sym-g);
-}
-
-.config-sub {
-	font-family: var(--mono);
-	font-size: 13px;
-	color: var(--dim);
-	line-height: 1.7;
-}
-
-.config-examples {
-	display: flex;
-	flex-direction: column;
-	gap: 0;
-}
-
-.config-example {
-	display: flex;
-	justify-content: space-between;
-	align-items: baseline;
-	padding: 14px 0;
-	border-bottom: 1px solid var(--faint);
-	font-family: var(--mono);
-	font-size: 13px;
-}
-
-.config-example:first-child {
-	border-top: 1px solid var(--faint);
-}
-
-.config-example-label {
-	color: var(--dim);
-	flex-shrink: 0;
-	width: 100px;
-}
-
-.config-example-value {
-	color: var(--mid);
-	text-align: right;
-}
-
-/* ── Skill ── */
-.skill-section {
-	padding: 80px 0;
-}
-
-/* ── CTA ── */
-.cta {
-	padding: 100px 0;
-	text-align: center;
-}
-
-.cta-heading {
-	font-family: var(--mono);
-	font-size: 16px;
-	font-weight: 500;
-	color: var(--mid);
-	margin-bottom: 40px;
-}
-
-.cta-install {
+/* ── Install ── */
+.install {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -379,21 +165,24 @@ hr {
 	border: 1px solid var(--border);
 	border-radius: 8px;
 	padding: 18px 20px;
+	margin-top: 16px;
 	cursor: pointer;
 	transition: border-color 0.2s;
 }
 
-.cta-install:hover {
+.install:hover {
 	border-color: var(--faint);
 }
-.cta-install .prompt {
+
+.install .p {
 	color: var(--dim);
 }
-.cta-install .cmd {
+
+.install .c {
 	color: var(--sym-g);
 }
 
-.cta-install .copy-btn {
+.install .copy-btn {
 	font-family: var(--mono);
 	font-size: 11px;
 	color: var(--dim);
@@ -405,21 +194,16 @@ hr {
 	transition: all 0.2s;
 }
 
-.cta-install .copy-btn:hover {
+.install .copy-btn:hover {
 	color: var(--mid);
 	border-color: var(--faint);
-}
-.cta-install .copy-btn.copied {
-	color: var(--sym-g);
-	border-color: var(--sym-g);
 }
 
 /* ── Footer ── */
 footer {
-	padding: 48px 0 80px;
+	padding: 64px 0 80px;
 	border-top: 1px solid var(--border);
-	font-family: var(--mono);
-	font-size: 14px;
+	font-size: 13px;
 	color: var(--dim);
 	display: flex;
 	justify-content: space-between;
@@ -430,9 +214,11 @@ footer a {
 	text-decoration: none;
 	transition: color 0.2s;
 }
+
 footer a:hover {
 	color: var(--accent);
 }
+
 .footer-links {
 	display: flex;
 	gap: 20px;
