@@ -91,7 +91,7 @@ for (const [tag, attrs] of favicons) {
 
 <script>
 window.copyInstall = (el) => {
-	navigator.clipboard.writeText('npm i -g prq-cli');
+	navigator.clipboard.writeText(el.querySelector('.c').textContent);
 	const btn = el.querySelector('.copy-btn');
 	btn.textContent = 'copied';
 	setTimeout(() => btn.textContent = 'copy', 2000);
