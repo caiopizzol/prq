@@ -115,45 +115,6 @@ hr {
 	padding: 80px 0;
 }
 
-.terminal {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 8px;
-	overflow: hidden;
-}
-
-.terminal-chrome {
-	height: 40px;
-	border-bottom: 1px solid var(--border);
-	display: flex;
-	align-items: center;
-	padding: 0 16px;
-	gap: 7px;
-}
-
-.terminal-circle {
-	width: 9px;
-	height: 9px;
-	border-radius: 50%;
-	background: var(--faint);
-}
-
-.terminal-body {
-	padding: 24px;
-	font-size: 13.5px;
-	line-height: 2;
-	color: var(--mid);
-}
-
-.t-white {
-	color: var(--text);
-	font-weight: 600;
-}
-
-.t-dim {
-	color: var(--dim);
-}
-
 /* ── Install ── */
 .install {
 	display: flex;
@@ -165,7 +126,6 @@ hr {
 	border: 1px solid var(--border);
 	border-radius: 8px;
 	padding: 18px 20px;
-	margin-top: 16px;
 	cursor: pointer;
 	transition: border-color 0.2s;
 }
@@ -197,14 +157,6 @@ hr {
 .install .copy-btn:hover {
 	color: var(--mid);
 	border-color: var(--faint);
-}
-
-/* ── Roadmap hint ── */
-.roadmap-hint {
-	font-size: 13px;
-	color: var(--dim);
-	margin-top: 24px;
-	text-align: center;
 }
 
 /* ── Footer ── */

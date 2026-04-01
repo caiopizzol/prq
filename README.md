@@ -6,7 +6,7 @@ What needs you, right now.
 
 `prq` shows you what needs your attention — PRs, issues, tickets — categorized by why, not just that they exist. One command. Zero noise.
 
-Starting with code reviews: what needs re-review, what's requested, what's stale, what's waiting on others. Mark PRs as in progress. Nudge stale PRs without double-pinging. Run `prq`, see your queue, act on it, move on. Issues and tickets are next.
+PRs and issues in one queue, categorized by action needed: needs response, requested, stale, waiting on others, mentioned. Mark items as in progress. Nudge stale work without double-pinging. Filter by type. Run `prq`, see your queue, act on it, move on.
 
 ## Install
 
@@ -19,14 +19,13 @@ Requires [GitHub CLI](https://cli.github.com/) (`gh`) to be authenticated.
 ## Quick Start
 
 ```bash
-# See your review queue (interactive by default)
+# See what needs your attention (interactive by default)
 prq
 
 # Non-interactive / plain text
 prq --no-interactive
 
-# Act on a PR
-prq review 482
+# Act on a PR or issue
 prq open 482
 prq nudge 482
 ```
@@ -35,7 +34,7 @@ prq nudge 482
 
 ### `prq status` (default)
 
-Shows PRs needing your attention in four categories. Interactive mode is the default when running in a terminal.
+Shows what needs your attention — PRs and issues in shared categories. Interactive mode is the default when running in a terminal.
 
 ```bash
 prq                                        # interactive mode (default)
@@ -48,19 +47,21 @@ prq --no-interactive                       # plain text output
 
 Navigate your queue with keyboard shortcuts:
 
-- **↑↓** navigate  **←→** page up/down  **/** search  **r** review  **o** open  **n** nudge  **s** start/stop  **c** copy url  **a** actions  **q** quit
+- **↑↓** navigate  **←→** page up/down  **/** search  **o** open  **n** nudge  **s** start/stop  **c** copy url  **t** filter  **a** actions  **q** quit
 
-Press **/** to search — type a PR number, title, or author and the cursor jumps to the first match. **Enter** confirms, **Esc** cancels.
+Press **/** to search — type a number, title, or author and the cursor jumps to the first match. **Enter** confirms, **Esc** cancels.
+
+Press **t** to filter by type — **a** all, **p** PRs only, **i** issues only.
 
 Press **a** to open the actions menu — all actions (built-in and custom) are listed and accessible by number.
 
-### `prq open/review/nudge <identifier>`
+### `prq open/nudge <identifier>`
 
-Act on PRs by number, `org/repo#number`, or full URL:
+Act on PRs or issues by number, `org/repo#number`, or full URL:
 
 ```bash
 prq open 482                               # open in browser
-prq review 482                             # open files changed
+prq open org/repo#482                      # open specific repo item
 prq nudge 482                              # post a comment (warns if already nudged)
 prq nudge 482 --yes --message "Update?"    # skip confirmation
 ```
@@ -101,7 +102,7 @@ prq skill --global     # install globally
 prq skill              # install in current project only
 ```
 
-Then Claude can check your queue, open PRs, nudge, and run actions on your behalf.
+Then Claude can check your queue, open PRs and issues, nudge, and run actions on your behalf.
 
 ## Project Structure
 
