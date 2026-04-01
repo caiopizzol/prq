@@ -8,76 +8,104 @@ import {
 } from "./actions.js";
 import { CATEGORY_CONFIG, sortByCategory } from "./categories.js";
 import type { Config } from "./config.js";
+import { typePrefix } from "./format.js";
 import type { ResolvedPR } from "./identifier.js";
 import { applyInProgress, applyNudged, toggleInProgress } from "./state.js";
-import type { CategorizedPR, PRCategory, StatusResult } from "./types.js";
+import type {
+	CategorizedItem,
+	ItemCategory,
+	ItemType,
+	StatusResult,
+} from "./types.js";
 
 const PAGE_SIZE = 10;
 
-function toResolvedPR(pr: CategorizedPR): ResolvedPR {
-	const [owner, repo] = pr.repo.split("/");
+type TypeFilter = "all" | ItemType;
+
+const FILTER_LABEL: Record<TypeFilter, string> = {
+	all: "all",
+	pr: "PRs",
+	issue: "issues",
+};
+
+function toResolvedPR(item: CategorizedItem): ResolvedPR {
+	const [owner, repo] = item.repo.split("/");
 	return {
 		owner,
 		repo,
-		number: pr.number,
-		url: pr.url,
-		title: pr.title,
-		author: pr.author,
-		updatedAt: pr.updatedAt,
+		number: item.number,
+		url: item.url,
+		title: item.title,
+		author: item.author,
+		updatedAt: item.updatedAt,
 	};
 }
 
 interface RenderState {
 	result: StatusResult;
-	sourcePrs: CategorizedPR[];
+	sourceItems: CategorizedItem[];
 	selectedIndex: number;
 	message: string;
 	actionMenu: { name: string; template: string }[] | null;
+	filterMenu: boolean;
+	typeFilter: TypeFilter;
 	viewStart: number;
 	searchMode: boolean;
 	searchBuffer: string;
 	preSearchIndex: number;
 }
 
-/** Recompute categorized PR list from source PRs and adjust selection to follow a target PR. */
+function filteredItems(state: RenderState): CategorizedItem[] {
+	if (state.typeFilter === "all") return state.result.items;
+	return state.result.items.filter((i) => i.type === state.typeFilter);
+}
+
+/** Recompute categorized item list from source items and adjust selection to follow a target item. */
 export function recomputeState(
 	state: {
 		result: StatusResult;
-		sourcePrs: CategorizedPR[];
+		sourceItems: CategorizedItem[];
 		selectedIndex: number;
 	},
-	targetPR: { repo: string; number: number },
+	targetItem: { repo: string; number: number },
 ): void {
 	state.result = {
 		...state.result,
-		prs: sortByCategory(applyNudged(applyInProgress(state.sourcePrs))),
+		items: sortByCategory(applyNudged(applyInProgress(state.sourceItems))),
 	};
-	const newIndex = state.result.prs.findIndex(
-		(p) => p.repo === targetPR.repo && p.number === targetPR.number,
+	const newIndex = state.result.items.findIndex(
+		(p) => p.repo === targetItem.repo && p.number === targetItem.number,
 	);
 	state.selectedIndex =
 		newIndex >= 0
 			? newIndex
-			: Math.min(state.selectedIndex, Math.max(0, state.result.prs.length - 1));
+			: Math.min(
+					state.selectedIndex,
+					Math.max(0, state.result.items.length - 1),
+				);
 }
 
 /**
- * Count how many output lines a range of PRs will produce,
+ * Count how many output lines a range of items will produce,
  * including category headers when the category changes.
  */
-function countLines(prs: CategorizedPR[], from: number, to: number): number {
+function countLines(
+	items: CategorizedItem[],
+	from: number,
+	to: number,
+): number {
 	let count = 0;
-	let lastCat: PRCategory | null = from > 0 ? null : null;
+	let lastCat: ItemCategory | null = from > 0 ? null : null;
 
 	// Look back to find the previous category for header logic
 	if (from > 0) {
-		lastCat = prs[from - 1].category;
+		lastCat = items[from - 1].category;
 	}
 
-	for (let i = from; i < to && i < prs.length; i++) {
-		if (prs[i].category !== lastCat) {
+	for (let i = from; i < to && i < items.length; i++) {
+		if (items[i].category !== lastCat) {
 			count += 2; // blank + category header
-			lastCat = prs[i].category;
+			lastCat = items[i].category;
 		}
 		count += 2; // title + detail
 	}
@@ -85,40 +113,40 @@ function countLines(prs: CategorizedPR[], from: number, to: number): number {
 }
 
 function render(state: RenderState) {
-	const { result, selectedIndex, message, actionMenu } = state;
+	const { selectedIndex, message, actionMenu, filterMenu } = state;
+	const items = filteredItems(state);
 	const termHeight = process.stdout.rows || 24;
 
 	process.stdout.write("\x1B[2J\x1B[H");
 
 	// Reserve: header(2) + blank(1) + shortcuts(1) + indicator(0-1) + message(0-1)
-	const hasPages = result.prs.length > 5; // will likely paginate
+	const hasPages = items.length > 5; // will likely paginate
 	const reservedTop = 2;
 	const reservedBottom = 2 + (hasPages ? 1 : 0) + (message ? 1 : 0);
 	const budget = termHeight - reservedTop - reservedBottom;
 
-	// Adjust viewStart so selected PR is visible and lines fit budget
-	// First ensure selected is in range
+	// Adjust viewStart so selected item is visible and lines fit budget
 	if (selectedIndex < state.viewStart) {
 		state.viewStart = selectedIndex;
 	}
 
 	// Expand window from viewStart, counting lines until budget exceeded
 	let end = state.viewStart;
-	while (end < result.prs.length) {
-		if (countLines(result.prs, state.viewStart, end + 1) > budget) break;
+	while (end < items.length) {
+		if (countLines(items, state.viewStart, end + 1) > budget) break;
 		end++;
 	}
 
-	// If selected PR is not in [viewStart, end), shift viewStart forward
+	// If selected item is not in [viewStart, end), shift viewStart forward
 	if (selectedIndex >= end) {
 		state.viewStart = selectedIndex;
 		end = selectedIndex + 1;
 		while (state.viewStart > 0) {
-			if (countLines(result.prs, state.viewStart - 1, end) > budget) break;
+			if (countLines(items, state.viewStart - 1, end) > budget) break;
 			state.viewStart--;
 		}
-		while (end < result.prs.length) {
-			if (countLines(result.prs, state.viewStart, end + 1) > budget) break;
+		while (end < items.length) {
+			if (countLines(items, state.viewStart, end + 1) > budget) break;
 			end++;
 		}
 	}
@@ -129,80 +157,89 @@ function render(state: RenderState) {
 	const lines: string[] = [];
 
 	// Header
-	lines.push(chalk.bold(` PRQ Status for ${result.user}`));
+	lines.push(chalk.bold(` PRQ Status for ${state.result.user}`));
 	lines.push(chalk.dim(` ${"─".repeat(50)}`));
 
 	// Category counts
-	const categoryCounts = new Map<PRCategory, number>();
-	for (const pr of result.prs) {
-		categoryCounts.set(pr.category, (categoryCounts.get(pr.category) ?? 0) + 1);
+	const categoryCounts = new Map<ItemCategory, number>();
+	for (const item of items) {
+		categoryCounts.set(
+			item.category,
+			(categoryCounts.get(item.category) ?? 0) + 1,
+		);
 	}
 
-	// PRs
-	let lastCategory: PRCategory | null =
-		state.viewStart > 0 ? result.prs[state.viewStart - 1].category : null;
+	// Items
+	let lastCategory: ItemCategory | null =
+		state.viewStart > 0 ? items[state.viewStart - 1].category : null;
 
 	for (let i = state.viewStart; i < viewEnd; i++) {
-		const pr = result.prs[i];
+		const item = items[i];
 		const isSelected = i === selectedIndex;
 
-		if (pr.category !== lastCategory) {
-			const cfg = CATEGORY_CONFIG[pr.category];
-			const count = categoryCounts.get(pr.category) ?? 0;
+		if (item.category !== lastCategory) {
+			const cfg = CATEGORY_CONFIG[item.category];
+			const count = categoryCounts.get(item.category) ?? 0;
 			lines.push("");
 			lines.push(
 				` ${cfg.color(`${cfg.icon} ${cfg.label}`)} ${chalk.dim(`(${count})`)}`,
 			);
-			lastCategory = pr.category;
+			lastCategory = item.category;
 		}
 
 		const arrow = isSelected ? chalk.yellow("›") : " ";
-		const draft = pr.isDraft ? chalk.dim(" [draft]") : "";
+		const draft = item.isDraft ? chalk.dim(" [draft]") : "";
 		const title =
-			pr.title.length > 50 ? `${pr.title.slice(0, 47)}...` : pr.title;
+			item.title.length > 50 ? `${item.title.slice(0, 47)}...` : item.title;
+		const prefix = typePrefix(item, isSelected);
 
-		const author = chalk.dim(`@${pr.author}`);
+		const author = chalk.dim(`@${item.author}`);
 
-		const detail = `${author} ${chalk.dim("·")} ${chalk.dim(pr.detail)}`;
+		const detail = `${author} ${chalk.dim("·")} ${chalk.dim(item.detail)}`;
 
 		if (isSelected) {
 			lines.push(
-				` ${arrow} ${chalk.white(`#${pr.number}`)}  ${chalk.white(title)}${draft}`,
+				` ${arrow} ${prefix} ${chalk.white(`#${item.number}`)}  ${chalk.white(title)}${draft}`,
 			);
-			lines.push(`     ${chalk.dim("↳")} ${detail}`);
+			lines.push(`        ${chalk.dim("↳")} ${detail}`);
 		} else {
 			lines.push(
-				` ${arrow} ${chalk.dim(`#${pr.number}`)}  ${chalk.dim(title)}${draft}`,
+				` ${arrow} ${prefix} ${chalk.dim(`#${item.number}`)}  ${chalk.dim(title)}${draft}`,
 			);
-			lines.push(`     ${chalk.dim("↳")} ${detail}`);
+			lines.push(`        ${chalk.dim("↳")} ${detail}`);
 		}
 	}
 
-	if (result.prs.length === 0) {
+	if (items.length === 0) {
 		lines.push("");
-		lines.push(chalk.green("  All clear! No PRs need your attention."));
+		lines.push(chalk.green("  All clear! Nothing needs your attention."));
 	}
 
 	// Footer
 	lines.push("");
 	if (state.searchMode) {
 		lines.push(` ${chalk.yellow("/")}${state.searchBuffer}${chalk.dim("▏")}`);
-	} else if (actionMenu) {
-		const pr = result.prs[selectedIndex];
+	} else if (filterMenu) {
 		lines.push(
-			` ${chalk.bold("Actions")} for ${chalk.white(`#${pr.number}`)}:  ${actionMenu.map((a, j) => `${chalk.white(String(j + 1))} ${a.name}`).join("  ")}  ${chalk.white("q")} back`,
+			` ${chalk.bold("Filter:")}  ${chalk.white("a")} all  ${chalk.white("p")} PRs  ${chalk.white("i")} issues  ${chalk.white("q")} back`,
+		);
+	} else if (actionMenu) {
+		const item = items[selectedIndex];
+		lines.push(
+			` ${chalk.bold("Actions")} for ${chalk.white(`#${item.number}`)}:  ${actionMenu.map((a, j) => `${chalk.white(String(j + 1))} ${a.name}`).join("  ")}  ${chalk.white("q")} back`,
 		);
 	} else {
-		const pr = result.prs[selectedIndex];
-		const sLabel = pr?.category === "in-progress" ? "stop" : "start";
+		const item = items[selectedIndex];
+		const sLabel = item?.category === "in-progress" ? "stop" : "start";
+		const filterLabel = FILTER_LABEL[state.typeFilter];
 		lines.push(
-			` ${chalk.dim("/")} search  ${chalk.dim("r")} review  ${chalk.dim("o")} open  ${chalk.dim("n")} nudge  ${chalk.dim("s")} ${sLabel}  ${chalk.dim("c")} copy  ${chalk.dim("a")} actions  ${chalk.dim("q")} quit`,
+			` ${chalk.dim("/")} search  ${chalk.dim("o")} open  ${chalk.dim("n")} nudge  ${chalk.dim("s")} ${sLabel}  ${chalk.dim("c")} copy  ${chalk.dim("t")} ${filterLabel}  ${chalk.dim("a")} actions  ${chalk.dim("q")} quit`,
 		);
 	}
-	if (result.prs.length > viewEnd - state.viewStart) {
+	if (items.length > viewEnd - state.viewStart) {
 		lines.push(
 			chalk.dim(
-				` ${state.viewStart + 1}-${viewEnd} of ${result.prs.length}  ↑↓ navigate  ←→ page`,
+				` ${state.viewStart + 1}-${viewEnd} of ${items.length}  ↑↓ navigate  ←→ page`,
 			),
 		);
 	}
@@ -216,23 +253,23 @@ function render(state: RenderState) {
 	process.stdout.write(output.join("\n"));
 }
 
-export function findMatch(prs: CategorizedPR[], query: string): number {
+export function findMatch(items: CategorizedItem[], query: string): number {
 	if (!query) return -1;
 	const q = query.toLowerCase();
 
-	// Exact PR number match first
+	// Exact number match first
 	const num = parseInt(q.replace(/^#/, ""), 10);
 	if (!Number.isNaN(num)) {
-		const idx = prs.findIndex((pr) => pr.number === num);
+		const idx = items.findIndex((item) => item.number === num);
 		if (idx !== -1) return idx;
 	}
 
 	// Substring match on number, title, or author
-	return prs.findIndex(
-		(pr) =>
-			String(pr.number).includes(q) ||
-			pr.title.toLowerCase().includes(q) ||
-			pr.author.toLowerCase().includes(q),
+	return items.findIndex(
+		(item) =>
+			String(item.number).includes(q) ||
+			item.title.toLowerCase().includes(q) ||
+			item.author.toLowerCase().includes(q),
 	);
 }
 
@@ -247,10 +284,10 @@ export interface SearchState {
 export function handleSearchKey(
 	state: SearchState,
 	key: string,
-	prs: CategorizedPR[],
+	items: CategorizedItem[],
 ): void {
 	const applySearch = () => {
-		const match = findMatch(prs, state.searchBuffer);
+		const match = findMatch(items, state.searchBuffer);
 		if (match !== -1) {
 			state.selectedIndex = match;
 			state.message = "";
@@ -301,23 +338,25 @@ function resume(state: RenderState, onData: (key: string) => void) {
 async function runAction(
 	actionName: string,
 	template: string,
-	pr: CategorizedPR,
+	item: CategorizedItem,
 	state: RenderState,
 	onData: (key: string) => void,
 ): Promise<{ message: string; ok: boolean }> {
-	const context = buildContext(toResolvedPR(pr), pr.category, pr.detail);
+	const context = buildContext(toResolvedPR(item), item.category, item.detail);
 	const cmd = interpolate(template, context);
 
 	suspend();
 	process.stdout.write(
-		chalk.dim(`\n  running ${actionName} on ${pr.repo}#${pr.number}...\n\n`),
+		chalk.dim(
+			`\n  running ${actionName} on ${item.repo}#${item.number}...\n\n`,
+		),
 	);
 
 	try {
 		await runActionWithHooks(actionName, cmd, context);
 		resume(state, onData);
 		return {
-			message: chalk.green(`${actionName}: ${pr.repo}#${pr.number}`),
+			message: chalk.green(`${actionName}: ${item.repo}#${item.number}`),
 			ok: true,
 		};
 	} catch {
@@ -328,11 +367,11 @@ async function runAction(
 
 export async function interactiveMode(
 	result: StatusResult,
-	sourcePrs: CategorizedPR[],
+	sourceItems: CategorizedItem[],
 	config: Config,
 ): Promise<void> {
-	if (result.prs.length === 0) {
-		console.log(chalk.green("\n  All clear! No PRs need your attention.\n"));
+	if (result.items.length === 0) {
+		console.log(chalk.green("\n  All clear! Nothing needs your attention.\n"));
 		return;
 	}
 
@@ -340,10 +379,12 @@ export async function interactiveMode(
 
 	const state: RenderState = {
 		result,
-		sourcePrs,
+		sourceItems,
 		selectedIndex: 0,
 		message: "",
 		actionMenu: null,
+		filterMenu: false,
+		typeFilter: "all",
 		viewStart: 0,
 		searchMode: false,
 		searchBuffer: "",
@@ -359,10 +400,41 @@ export async function interactiveMode(
 
 	return new Promise((resolve) => {
 		const onData = async (key: string) => {
-			const pr = state.result.prs[state.selectedIndex];
+			const items = filteredItems(state);
+			// Clamp selectedIndex to filtered list bounds (e.g., after recomputeState with active filter)
+			if (items.length > 0 && state.selectedIndex >= items.length) {
+				state.selectedIndex = items.length - 1;
+			}
+			const item = items[state.selectedIndex];
 
 			if (state.searchMode) {
-				handleSearchKey(state, key, state.result.prs);
+				handleSearchKey(state, key, items);
+				render(state);
+				return;
+			}
+
+			if (state.filterMenu) {
+				const applyFilter = (filter: TypeFilter) => {
+					state.typeFilter = filter;
+					state.filterMenu = false;
+					state.selectedIndex = 0;
+					state.viewStart = 0;
+					state.message = "";
+				};
+				if (key === "a") {
+					applyFilter("all");
+				} else if (key === "p") {
+					applyFilter("pr");
+				} else if (key === "i") {
+					applyFilter("issue");
+				} else if (key === "q" || key === "\x1B" || key === "t") {
+					state.filterMenu = false;
+					state.message = "";
+				} else if (key === "\x03") {
+					suspend();
+					resolve();
+					return;
+				}
 				render(state);
 				return;
 			}
@@ -382,14 +454,14 @@ export async function interactiveMode(
 						const result = await runAction(
 							action.name,
 							action.template,
-							pr,
+							item,
 							state,
 							onData,
 						);
 						state.message = result.message;
 						state.actionMenu = null;
 						if (action.name === "nudge" && result.ok) {
-							recomputeState(state, pr);
+							recomputeState(state, item);
 						}
 					}
 				}
@@ -410,7 +482,7 @@ export async function interactiveMode(
 					break;
 				case "\x1B[B":
 					state.selectedIndex = Math.min(
-						state.result.prs.length - 1,
+						items.length - 1,
 						state.selectedIndex + 1,
 					);
 					state.message = "";
@@ -421,7 +493,7 @@ export async function interactiveMode(
 					break;
 				case "\x1B[C":
 					state.selectedIndex = Math.min(
-						state.result.prs.length - 1,
+						items.length - 1,
 						state.selectedIndex + PAGE_SIZE,
 					);
 					state.message = "";
@@ -431,16 +503,7 @@ export async function interactiveMode(
 					const template = allActions.open;
 					if (template) {
 						state.message = (
-							await runAction("open", template, pr, state, onData)
-						).message;
-					}
-					break;
-				}
-				case "r": {
-					const template = allActions.review;
-					if (template) {
-						state.message = (
-							await runAction("review", template, pr, state, onData)
+							await runAction("open", template, item, state, onData)
 						).message;
 					}
 					break;
@@ -448,8 +511,8 @@ export async function interactiveMode(
 				case "n": {
 					const template = allActions.nudge;
 					if (!template) break;
-					const isOwnPR = pr.author === state.result.user;
-					const hasReviewers = /@\w/.test(pr.detail);
+					const isOwnPR = item.author === state.result.user;
+					const hasReviewers = /@\w/.test(item.detail);
 					if (isOwnPR && !hasReviewers) {
 						state.message = chalk.yellow("no reviewers to nudge");
 						break;
@@ -457,18 +520,18 @@ export async function interactiveMode(
 					const nudgeResult = await runAction(
 						"nudge",
 						template,
-						pr,
+						item,
 						state,
 						onData,
 					);
 					state.message = nudgeResult.message;
 					if (nudgeResult.ok) {
-						recomputeState(state, pr);
+						recomputeState(state, item);
 					}
 					break;
 				}
 				case "c": {
-					const url = pr.url;
+					const url = item.url;
 					try {
 						const proc =
 							process.platform === "darwin"
@@ -484,11 +547,16 @@ export async function interactiveMode(
 					break;
 				}
 				case "s": {
-					const started = toggleInProgress(pr);
-					recomputeState(state, pr);
+					const started = toggleInProgress(item);
+					recomputeState(state, item);
 					state.message = started
-						? chalk.cyan(`started: ${pr.repo}#${pr.number}`)
-						: chalk.dim(`unmarked: ${pr.repo}#${pr.number}`);
+						? chalk.cyan(`started: ${item.repo}#${item.number}`)
+						: chalk.dim(`unmarked: ${item.repo}#${item.number}`);
+					break;
+				}
+				case "t": {
+					state.filterMenu = true;
+					state.message = "";
 					break;
 				}
 				case "a": {

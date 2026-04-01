@@ -1,14 +1,18 @@
-export type PRCategory =
+export type ItemType = "pr" | "issue";
+
+export type ItemCategory =
 	| "in-progress"
 	| "nudged"
 	| "needs-re-review"
 	| "open"
 	| "requested"
 	| "stale"
-	| "waiting-on-others";
+	| "waiting-on-others"
+	| "mentioned";
 
-export interface CategorizedPR {
-	category: PRCategory;
+export interface CategorizedItem {
+	type: ItemType;
+	category: ItemCategory;
 	repo: string;
 	number: number;
 	title: string;
@@ -22,5 +26,5 @@ export interface CategorizedPR {
 export interface StatusResult {
 	user: string;
 	timestamp: string;
-	prs: CategorizedPR[];
+	items: CategorizedItem[];
 }

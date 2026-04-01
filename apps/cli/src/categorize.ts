@@ -1,7 +1,12 @@
-import type { PRBasic, PRWithCommit, PRWithReviews } from "./github/types.js";
-import type { CategorizedPR } from "./types.js";
+import type {
+	IssueWithComments,
+	PRBasic,
+	PRWithCommit,
+	PRWithReviews,
+} from "./github/types.js";
+import type { CategorizedItem } from "./types.js";
 
-function timeAgo(dateStr: string): string {
+export function timeAgo(dateStr: string): string {
 	const now = Date.now();
 	const then = new Date(dateStr).getTime();
 	const diffMs = now - then;
@@ -24,8 +29,8 @@ export function categorize(
 	authoredPRs: PRBasic[],
 	staleDays: number,
 	allOpenPRs: PRWithCommit[],
-): CategorizedPR[] {
-	const results: CategorizedPR[] = [];
+): CategorizedItem[] {
+	const results: CategorizedItem[] = [];
 	const seen = new Set<string>();
 
 	const key = (pr: { repo: string; number: number }) =>
@@ -44,8 +49,8 @@ export function categorize(
 
 		if (commitDate > reviewDate) {
 			seen.add(k);
-			// Count commits after review (approximate from timestamp)
 			results.push({
+				type: "pr",
 				category: "needs-re-review",
 				repo: pr.repo,
 				number: pr.number,
@@ -66,6 +71,7 @@ export function categorize(
 		seen.add(k);
 
 		results.push({
+			type: "pr",
 			category: "requested",
 			repo: pr.repo,
 			number: pr.number,
@@ -88,6 +94,7 @@ export function categorize(
 		if (inactive >= staleDays) {
 			seen.add(k);
 			results.push({
+				type: "pr",
 				category: "stale",
 				repo: pr.repo,
 				number: pr.number,
@@ -110,6 +117,7 @@ export function categorize(
 			seen.add(k);
 			const reviewers = pr.requestedReviewers.map((r) => `@${r}`).join(", ");
 			results.push({
+				type: "pr",
 				category: "waiting-on-others",
 				repo: pr.repo,
 				number: pr.number,
@@ -130,6 +138,7 @@ export function categorize(
 		seen.add(k);
 
 		results.push({
+			type: "pr",
 			category: "open",
 			repo: pr.repo,
 			number: pr.number,
@@ -147,6 +156,129 @@ export function categorize(
 		if (a.category !== b.category) return 0;
 		return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
 	});
+
+	return results;
+}
+
+function makeIssueItem(
+	issue: IssueWithComments,
+	category: CategorizedItem["category"],
+	detail: string,
+): CategorizedItem {
+	return {
+		type: "issue",
+		category,
+		repo: issue.repo,
+		number: issue.number,
+		title: issue.title,
+		author: issue.author,
+		url: issue.url,
+		isDraft: false,
+		updatedAt: issue.updatedAt,
+		detail,
+	};
+}
+
+export function categorizeIssues(
+	assignedIssues: IssueWithComments[],
+	mentionedIssues: IssueWithComments[],
+	staleDays: number,
+): CategorizedItem[] {
+	const results: CategorizedItem[] = [];
+	const seen = new Set<string>();
+
+	const key = (issue: { repo: string; number: number }) =>
+		`${issue.repo}#${issue.number}`;
+
+	// 1. Needs response: someone commented after your last comment
+	for (const issue of assignedIssues) {
+		const k = key(issue);
+		if (seen.has(k)) continue;
+
+		if (
+			issue.latestOtherCommentAt &&
+			(!issue.userLastCommentAt ||
+				new Date(issue.latestOtherCommentAt).getTime() >
+					new Date(issue.userLastCommentAt).getTime())
+		) {
+			seen.add(k);
+			results.push(
+				makeIssueItem(
+					issue,
+					"needs-re-review",
+					`New comment ${timeAgo(issue.latestOtherCommentAt)}`,
+				),
+			);
+		}
+	}
+
+	// 2. Requested: newly assigned, no activity from user yet
+	for (const issue of assignedIssues) {
+		const k = key(issue);
+		if (seen.has(k)) continue;
+
+		if (!issue.userLastCommentAt) {
+			seen.add(k);
+			results.push(
+				makeIssueItem(
+					issue,
+					"requested",
+					`Assigned ${timeAgo(issue.updatedAt)}`,
+				),
+			);
+		}
+	}
+
+	// 3. Stale: assigned with no activity for N days
+	for (const issue of assignedIssues) {
+		const k = key(issue);
+		if (seen.has(k)) continue;
+
+		const inactive = daysAgo(issue.updatedAt);
+		if (inactive >= staleDays) {
+			seen.add(k);
+			results.push(
+				makeIssueItem(issue, "stale", `No activity for ${inactive} days`),
+			);
+		}
+	}
+
+	// 4. Waiting on others: user commented last, waiting for reply
+	for (const issue of assignedIssues) {
+		const k = key(issue);
+		if (seen.has(k)) continue;
+
+		if (
+			issue.userLastCommentAt &&
+			(!issue.latestOtherCommentAt ||
+				new Date(issue.userLastCommentAt).getTime() >
+					new Date(issue.latestOtherCommentAt).getTime())
+		) {
+			seen.add(k);
+			results.push(
+				makeIssueItem(
+					issue,
+					"waiting-on-others",
+					`You commented last ${timeAgo(issue.userLastCommentAt)}`,
+				),
+			);
+		}
+	}
+
+	// 5. Mentioned: @-mentioned but not assigned
+	for (const issue of mentionedIssues) {
+		const k = key(issue);
+		if (seen.has(k)) continue;
+		seen.add(k);
+
+		results.push(
+			makeIssueItem(
+				issue,
+				"mentioned",
+				`Mentioned ${timeAgo(issue.updatedAt)}`,
+			),
+		);
+	}
 
 	return results;
 }

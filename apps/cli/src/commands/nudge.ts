@@ -29,25 +29,26 @@ export async function nudgeCommand(
 	config: Config,
 	options: { message?: string; yes?: boolean },
 ): Promise<void> {
-	const pr = await resolveIdentifier(identifier, config);
+	const resolved = await resolveIdentifier(identifier, config);
 
+	// Use issues.get which works for both PRs and issues on GitHub API
 	const client = getClient();
-	const { data } = await client.pulls.get({
-		owner: pr.owner,
-		repo: pr.repo,
-		pull_number: pr.number,
+	const { data } = await client.issues.get({
+		owner: resolved.owner,
+		repo: resolved.repo,
+		issue_number: resolved.number,
 	});
 
-	const repo = `${pr.owner}/${pr.repo}`;
-	const label = `${repo}#${pr.number}`;
-	const nudgedAt = getNudgedAt({ repo, number: pr.number });
+	const repo = `${resolved.owner}/${resolved.repo}`;
+	const label = `${repo}#${resolved.number}`;
+	const nudgedAt = getNudgedAt({ repo, number: resolved.number });
 
 	if (nudgedAt && !options.yes) {
 		const ago = daysAgo(nudgedAt);
 		const agoText =
 			ago === 0 ? "today" : `${ago} day${ago === 1 ? "" : "s"} ago`;
 		console.log();
-		console.log(chalk.yellow(`  This PR was already nudged ${agoText}.`));
+		console.log(chalk.yellow(`  This was already nudged ${agoText}.`));
 
 		if (!(await confirm(chalk.yellow("  Nudge again? (y/N) ")))) {
 			console.log(chalk.dim("  Cancelled."));
@@ -58,7 +59,7 @@ export async function nudgeCommand(
 	const days = daysAgo(data.updated_at);
 	const message =
 		options.message ??
-		`Hey @${data.user?.login ?? pr.author}, is this PR still active? It's been ${days} day${days === 1 ? "" : "s"} since the last activity.`;
+		`Hey @${data.user?.login ?? resolved.author}, is this still active? It's been ${days} day${days === 1 ? "" : "s"} since the last activity.`;
 
 	if (!options.yes) {
 		console.log();
@@ -75,12 +76,12 @@ export async function nudgeCommand(
 	}
 
 	await client.issues.createComment({
-		owner: pr.owner,
-		repo: pr.repo,
-		issue_number: pr.number,
+		owner: resolved.owner,
+		repo: resolved.repo,
+		issue_number: resolved.number,
 		body: message,
 	});
 
-	markNudged({ repo, number: pr.number });
+	markNudged({ repo, number: resolved.number });
 	console.log(chalk.green(`  Comment posted on ${label}`));
 }

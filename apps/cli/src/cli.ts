@@ -30,7 +30,7 @@ export function createCLI(): Command {
 
 	program
 		.command("status", { isDefault: true })
-		.description("Show PRs needing your attention")
+		.description("Show what needs your attention")
 		.option("-r, --repos <repos...>", "Filter to specific repos (owner/name)")
 		.option(
 			"-s, --stale-days <days>",
@@ -53,7 +53,7 @@ export function createCLI(): Command {
 	// Built-in action shortcuts
 	program
 		.command("open <identifier>")
-		.description("Open a PR in the browser")
+		.description("Open a PR or issue in the browser")
 		.action(async (identifier: string) => {
 			const config = loadConfig({});
 			await runCommand("open", identifier, config);
@@ -69,7 +69,7 @@ export function createCLI(): Command {
 
 	program
 		.command("nudge <identifier>")
-		.description("Post a nudge comment on a PR")
+		.description("Post a nudge comment on a PR or issue")
 		.option("-m, --message <msg>", "Custom nudge message")
 		.option("-y, --yes", "Skip confirmation")
 		.action(async (identifier: string, opts) => {
@@ -83,7 +83,7 @@ export function createCLI(): Command {
 	// Generic action runner for custom actions
 	program
 		.command("run <action> <identifier>")
-		.description("Run a custom action on a PR")
+		.description("Run a custom action on a PR or issue")
 		.action(async (action: string, identifier: string) => {
 			const config = loadConfig({});
 			await runCommand(action, identifier, config);

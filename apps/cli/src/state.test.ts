@@ -10,13 +10,14 @@ import {
 	markNudged,
 	toggleInProgress,
 } from "./state.js";
-import type { CategorizedPR } from "./types.js";
+import type { CategorizedItem } from "./types.js";
 
 const STATE_DIR = path.join(process.env.HOME ?? "", ".config", "prq");
 const STATE_PATH = path.join(STATE_DIR, "state.json");
 
-function makePR(overrides: Partial<CategorizedPR> = {}): CategorizedPR {
+function makeItem(overrides: Partial<CategorizedItem> = {}): CategorizedItem {
 	return {
+		type: "pr",
 		category: "needs-re-review",
 		repo: "org/repo",
 		number: 1,
@@ -59,25 +60,25 @@ describe("loadInProgress", () => {
 });
 
 describe("toggleInProgress", () => {
-	test("marks PR as in-progress and returns true", () => {
-		const pr = makePR({ number: 10 });
-		const result = toggleInProgress(pr);
+	test("marks item as in-progress and returns true", () => {
+		const item = makeItem({ number: 10 });
+		const result = toggleInProgress(item);
 		expect(result).toBe(true);
 		expect(loadInProgress().has("org/repo#10")).toBe(true);
 	});
 
-	test("unmarks PR and returns false", () => {
-		const pr = makePR({ number: 10 });
-		toggleInProgress(pr); // mark
-		const result = toggleInProgress(pr); // unmark
+	test("unmarks item and returns false", () => {
+		const item = makeItem({ number: 10 });
+		toggleInProgress(item); // mark
+		const result = toggleInProgress(item); // unmark
 		expect(result).toBe(false);
 		expect(loadInProgress().has("org/repo#10")).toBe(false);
 	});
 
 	test("preserves nudgedAt when toggling in-progress", () => {
-		const pr = makePR({ number: 10 });
+		const item = makeItem({ number: 10 });
 		markNudged({ repo: "org/repo", number: 10 });
-		toggleInProgress(pr);
+		toggleInProgress(item);
 		expect(getNudgedAt({ repo: "org/repo", number: 10 })).not.toBeNull();
 		expect(loadInProgress().has("org/repo#10")).toBe(true);
 	});
@@ -85,39 +86,39 @@ describe("toggleInProgress", () => {
 
 describe("applyInProgress", () => {
 	test("returns same array when no state", () => {
-		const prs = [makePR({ number: 1 }), makePR({ number: 2 })];
-		const result = applyInProgress(prs);
-		expect(result).toEqual(prs);
+		const items = [makeItem({ number: 1 }), makeItem({ number: 2 })];
+		const result = applyInProgress(items);
+		expect(result).toEqual(items);
 	});
 
-	test("changes category to in-progress for marked PRs", () => {
-		const pr = makePR({ number: 10, category: "stale" });
-		toggleInProgress(pr);
+	test("changes category to in-progress for marked items", () => {
+		const item = makeItem({ number: 10, category: "stale" });
+		toggleInProgress(item);
 
-		const prs = [
-			makePR({ number: 10, category: "stale" }),
-			makePR({ number: 20, category: "requested" }),
+		const items = [
+			makeItem({ number: 10, category: "stale" }),
+			makeItem({ number: 20, category: "requested" }),
 		];
-		const result = applyInProgress(prs);
+		const result = applyInProgress(items);
 
 		expect(result[0].category).toBe("in-progress");
 		expect(result[0].detail).toBe("test detail"); // preserves detail
 		expect(result[1].category).toBe("requested");
 	});
 
-	test("cleans up keys for PRs no longer in queue", () => {
-		const pr = makePR({ number: 99 });
-		toggleInProgress(pr);
+	test("cleans up keys for items no longer in queue", () => {
+		const item = makeItem({ number: 99 });
+		toggleInProgress(item);
 		expect(loadInProgress().has("org/repo#99")).toBe(true);
 
 		// Apply with a list that doesn't include #99 (it was merged)
-		applyInProgress([makePR({ number: 1 })]);
+		applyInProgress([makeItem({ number: 1 })]);
 		expect(loadInProgress().has("org/repo#99")).toBe(false);
 	});
 
 	test("auto-clears when review was submitted after marking in-progress", () => {
-		const pr = makePR({ number: 10, category: "stale" });
-		toggleInProgress(pr);
+		const item = makeItem({ number: 10, category: "stale" });
+		toggleInProgress(item);
 		expect(loadInProgress().has("org/repo#10")).toBe(true);
 
 		// Simulate a review submitted after marking in-progress
@@ -125,25 +126,25 @@ describe("applyInProgress", () => {
 			["org/repo#10", new Date(Date.now() + 60_000).toISOString()],
 		]);
 
-		const prs = [makePR({ number: 10, category: "stale" })];
-		const result = applyInProgress(prs, reviewTimestamps);
+		const items = [makeItem({ number: 10, category: "stale" })];
+		const result = applyInProgress(items, reviewTimestamps);
 
 		expect(result[0].category).toBe("stale"); // not overridden
 		expect(loadInProgress().has("org/repo#10")).toBe(false); // cleared from state
 	});
 
 	test("does not auto-clear when review was before marking in-progress", () => {
-		const pr = makePR({ number: 10, category: "stale" });
+		const item = makeItem({ number: 10, category: "stale" });
 
 		// Simulate a review submitted before marking in-progress
 		const reviewTimestamps = new Map([
 			["org/repo#10", new Date(Date.now() - 60_000).toISOString()],
 		]);
 
-		toggleInProgress(pr);
+		toggleInProgress(item);
 
-		const prs = [makePR({ number: 10, category: "stale" })];
-		const result = applyInProgress(prs, reviewTimestamps);
+		const items = [makeItem({ number: 10, category: "stale" })];
+		const result = applyInProgress(items, reviewTimestamps);
 
 		expect(result[0].category).toBe("in-progress");
 		expect(loadInProgress().has("org/repo#10")).toBe(true);
@@ -161,8 +162,8 @@ describe("applyInProgress", () => {
 			["org/repo#10", new Date().toISOString()],
 		]);
 
-		const prs = [makePR({ number: 10, category: "stale" })];
-		const result = applyInProgress(prs, reviewTimestamps);
+		const items = [makeItem({ number: 10, category: "stale" })];
+		const result = applyInProgress(items, reviewTimestamps);
 
 		// Legacy boolean can't be compared — should stay in-progress
 		expect(result[0].category).toBe("in-progress");
@@ -184,8 +185,8 @@ describe("nudge state", () => {
 	});
 
 	test("markNudged preserves inProgress state", () => {
-		const pr = makePR({ number: 10 });
-		toggleInProgress(pr);
+		const item = makeItem({ number: 10 });
+		toggleInProgress(item);
 		markNudged({ repo: "org/repo", number: 10 });
 		expect(loadInProgress().has("org/repo#10")).toBe(true);
 		expect(getNudgedAt({ repo: "org/repo", number: 10 })).not.toBeNull();
@@ -194,18 +195,18 @@ describe("nudge state", () => {
 
 describe("applyNudged", () => {
 	test("returns same array when no nudged state", () => {
-		const prs = [makePR({ number: 1 }), makePR({ number: 2 })];
-		const result = applyNudged(prs);
-		expect(result).toEqual(prs);
+		const items = [makeItem({ number: 1 }), makeItem({ number: 2 })];
+		const result = applyNudged(items);
+		expect(result).toEqual(items);
 	});
 
-	test("changes category to nudged for nudged PRs", () => {
+	test("changes category to nudged for nudged items", () => {
 		markNudged({ repo: "org/repo", number: 10 });
-		const prs = [
-			makePR({ number: 10, category: "stale" }),
-			makePR({ number: 20, category: "requested" }),
+		const items = [
+			makeItem({ number: 10, category: "stale" }),
+			makeItem({ number: 20, category: "requested" }),
 		];
-		const result = applyNudged(prs);
+		const result = applyNudged(items);
 		expect(result[0].category).toBe("nudged");
 		expect(result[0].detail).toMatch(/^Nudged /);
 		expect(result[1].category).toBe("requested");
@@ -213,28 +214,28 @@ describe("applyNudged", () => {
 
 	test("does not override in-progress category", () => {
 		markNudged({ repo: "org/repo", number: 10 });
-		const prs = [makePR({ number: 10, category: "in-progress" })];
-		const result = applyNudged(prs);
+		const items = [makeItem({ number: 10, category: "in-progress" })];
+		const result = applyNudged(items);
 		expect(result[0].category).toBe("in-progress");
 	});
 
-	test("cleans up nudgedAt for PRs no longer in queue", () => {
+	test("cleans up nudgedAt for items no longer in queue", () => {
 		markNudged({ repo: "org/repo", number: 99 });
 		expect(getNudgedAt({ repo: "org/repo", number: 99 })).not.toBeNull();
-		applyNudged([makePR({ number: 1 })]);
+		applyNudged([makeItem({ number: 1 })]);
 		expect(getNudgedAt({ repo: "org/repo", number: 99 })).toBeNull();
 	});
 });
 
 describe("sortByCategory", () => {
-	test("groups PRs by category order", () => {
-		const prs = [
-			makePR({ number: 1, category: "open" }),
-			makePR({ number: 2, category: "in-progress" }),
-			makePR({ number: 3, category: "requested" }),
-			makePR({ number: 4, category: "in-progress" }),
+	test("groups items by category order", () => {
+		const items = [
+			makeItem({ number: 1, category: "open" }),
+			makeItem({ number: 2, category: "in-progress" }),
+			makeItem({ number: 3, category: "requested" }),
+			makeItem({ number: 4, category: "in-progress" }),
 		];
-		const sorted = sortByCategory(prs);
+		const sorted = sortByCategory(items);
 		expect(sorted.map((p) => p.category)).toEqual([
 			"in-progress",
 			"in-progress",
@@ -246,22 +247,22 @@ describe("sortByCategory", () => {
 	test("sorts by updatedAt within same category", () => {
 		const older = new Date("2026-01-01").toISOString();
 		const newer = new Date("2026-03-01").toISOString();
-		const prs = [
-			makePR({ number: 1, category: "requested", updatedAt: older }),
-			makePR({ number: 2, category: "requested", updatedAt: newer }),
+		const items = [
+			makeItem({ number: 1, category: "requested", updatedAt: older }),
+			makeItem({ number: 2, category: "requested", updatedAt: newer }),
 		];
-		const sorted = sortByCategory(prs);
+		const sorted = sortByCategory(items);
 		expect(sorted[0].number).toBe(2); // newer first
 		expect(sorted[1].number).toBe(1);
 	});
 
 	test("does not mutate original array", () => {
-		const prs = [
-			makePR({ number: 1, category: "open" }),
-			makePR({ number: 2, category: "in-progress" }),
+		const items = [
+			makeItem({ number: 1, category: "open" }),
+			makeItem({ number: 2, category: "in-progress" }),
 		];
-		const sorted = sortByCategory(prs);
-		expect(prs[0].category).toBe("open"); // original unchanged
+		const sorted = sortByCategory(items);
+		expect(items[0].category).toBe("open"); // original unchanged
 		expect(sorted[0].category).toBe("in-progress");
 	});
 });

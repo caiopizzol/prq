@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { parseIdentifier } from "./identifier.js";
 
 describe("parseIdentifier", () => {
-	test("parses full GitHub URL", () => {
+	test("parses full GitHub PR URL", () => {
 		const result = parseIdentifier(
 			"https://github.com/superdoc-dev/superdoc/pull/2352",
 		);
@@ -11,6 +11,7 @@ describe("parseIdentifier", () => {
 			owner: "superdoc-dev",
 			repo: "superdoc",
 			number: 2352,
+			type: "pr",
 		});
 	});
 
@@ -23,6 +24,18 @@ describe("parseIdentifier", () => {
 			owner: "org",
 			repo: "repo",
 			number: 123,
+			type: "pr",
+		});
+	});
+
+	test("parses GitHub issue URL", () => {
+		const result = parseIdentifier("https://github.com/org/repo/issues/456");
+		expect(result).toEqual({
+			kind: "url",
+			owner: "org",
+			repo: "repo",
+			number: 456,
+			type: "issue",
 		});
 	});
 
@@ -57,14 +70,14 @@ describe("parseIdentifier", () => {
 	});
 
 	test("throws on invalid input", () => {
-		expect(() => parseIdentifier("not-a-pr")).toThrow("Invalid PR identifier");
+		expect(() => parseIdentifier("not-a-pr")).toThrow("Invalid identifier");
 	});
 
 	test("throws on empty string", () => {
-		expect(() => parseIdentifier("")).toThrow("Invalid PR identifier");
+		expect(() => parseIdentifier("")).toThrow("Invalid identifier");
 	});
 
 	test("throws on repo without number", () => {
-		expect(() => parseIdentifier("org/repo")).toThrow("Invalid PR identifier");
+		expect(() => parseIdentifier("org/repo")).toThrow("Invalid identifier");
 	});
 });

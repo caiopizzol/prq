@@ -18,3 +18,18 @@ export interface PRWithReviews extends PRBasic {
 	latestCommitAt: string;
 	latestAuthorCommentAt: string | null;
 }
+
+export interface IssueBasic {
+	number: number;
+	title: string;
+	author: string;
+	repo: string;
+	url: string;
+	updatedAt: string;
+	assignees: string[];
+}
+
+export interface IssueWithComments extends IssueBasic {
+	userLastCommentAt: string | null;
+	latestOtherCommentAt: string | null;
+}

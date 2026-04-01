@@ -1,5 +1,11 @@
 import { getClient } from "./client.js";
-import type { PRBasic, PRWithCommit, PRWithReviews } from "./types.js";
+import type {
+	IssueBasic,
+	IssueWithComments,
+	PRBasic,
+	PRWithCommit,
+	PRWithReviews,
+} from "./types.js";
 
 function buildRepoFilter(repos: string[]): string {
 	if (repos.length === 0) return "";
@@ -21,6 +27,21 @@ function parsePR(item: Record<string, unknown>): PRBasic {
 	};
 }
 
+function parseIssue(item: Record<string, unknown>): IssueBasic {
+	const user = item.user as Record<string, unknown>;
+	const [owner, repo] = (item.repository_url as string).split("/").slice(-2);
+	const assignees = (item.assignees as Array<Record<string, unknown>>) ?? [];
+	return {
+		number: item.number as number,
+		title: item.title as string,
+		author: user.login as string,
+		repo: `${owner}/${repo}`,
+		url: item.html_url as string,
+		updatedAt: item.updated_at as string,
+		assignees: assignees.map((a) => a.login as string),
+	};
+}
+
 async function searchPRs(query: string): Promise<PRBasic[]> {
 	const client = getClient();
 	const { data } = await client.request("GET /search/issues", {
@@ -36,6 +57,27 @@ async function searchPRs(query: string): Promise<PRBasic[]> {
 	}
 	return data.items.map(parsePR);
 }
+
+async function searchIssues(query: string): Promise<IssueBasic[]> {
+	const client = getClient();
+	const { data } = await client.request("GET /search/issues", {
+		q: query,
+		per_page: 100,
+		sort: "updated",
+		order: "desc",
+	});
+	if (data.total_count > data.items.length) {
+		process.stderr.write(
+			`Warning: showing ${data.items.length} of ${data.total_count} results (sorted by most recently updated)\n`,
+		);
+	}
+	// Filter out PRs — the search/issues endpoint returns both
+	return data.items
+		.filter((item) => !(item as Record<string, unknown>).pull_request)
+		.map(parseIssue);
+}
+
+// --- PR queries ---
 
 export async function fetchReviewedPRs(
 	user: string,
@@ -213,5 +255,117 @@ export async function enrichAllWithReviews(
 		}
 	}
 
+	return results;
+}
+
+// --- Issue queries ---
+
+export async function fetchAssignedIssues(
+	user: string,
+	repos: string[],
+): Promise<IssueBasic[]> {
+	const repoFilter = buildRepoFilter(repos);
+	const query = `is:issue is:open assignee:${user} ${repoFilter}`.trim();
+	return searchIssues(query);
+}
+
+export async function fetchMentionedIssues(
+	user: string,
+	repos: string[],
+): Promise<IssueBasic[]> {
+	const repoFilter = buildRepoFilter(repos);
+	const query =
+		`is:issue is:open mentions:${user} -assignee:${user} ${repoFilter}`.trim();
+	return searchIssues(query);
+}
+
+async function enrichIssueWithComments(
+	issue: IssueBasic,
+	user: string,
+): Promise<IssueWithComments> {
+	try {
+		const client = getClient();
+		const [owner, repo] = issue.repo.split("/");
+		const { data: comments } = await client.issues.listComments({
+			owner,
+			repo,
+			issue_number: issue.number,
+			per_page: 100,
+			sort: "created",
+			direction: "desc",
+		});
+
+		let userLastCommentAt: string | null = null;
+		let latestOtherComment: { id: number; created_at: string } | null = null;
+
+		for (const comment of comments) {
+			const login = comment.user?.login;
+			const isBot =
+				(comment.user as Record<string, unknown>)?.type === "Bot" ||
+				(login?.endsWith("[bot]") ?? false);
+
+			if (login === user && !userLastCommentAt) {
+				userLastCommentAt = comment.created_at;
+			} else if (login !== user && !isBot && !latestOtherComment) {
+				latestOtherComment = {
+					id: comment.id,
+					created_at: comment.created_at,
+				};
+			}
+			if (userLastCommentAt && latestOtherComment) break;
+		}
+
+		// Check if user reacted to the latest non-bot comment (counts as acknowledgment)
+		let userReactedToLatest = false;
+		if (latestOtherComment) {
+			try {
+				const { data: reactions } = await client.reactions.listForIssueComment({
+					owner,
+					repo,
+					comment_id: latestOtherComment.id,
+					per_page: 100,
+				});
+				userReactedToLatest = reactions.some((r) => r.user?.login === user);
+			} catch {
+				// If we can't fetch reactions, treat as no reaction
+			}
+		}
+
+		const latestOtherCommentAt = latestOtherComment?.created_at ?? null;
+
+		// If user reacted to the latest comment, treat it as if they responded
+		// Add 1ms so the reaction timestamp is strictly after the comment (avoids equality edge case)
+		const effectiveUserLastCommentAt =
+			userReactedToLatest && latestOtherComment
+				? new Date(
+						new Date(latestOtherComment.created_at).getTime() + 1,
+					).toISOString()
+				: userLastCommentAt;
+
+		return {
+			...issue,
+			userLastCommentAt: effectiveUserLastCommentAt,
+			latestOtherCommentAt,
+		};
+	} catch {
+		process.stderr.write(
+			`Warning: failed to fetch comments for ${issue.repo}#${issue.number}\n`,
+		);
+		return { ...issue, userLastCommentAt: null, latestOtherCommentAt: null };
+	}
+}
+
+export async function enrichAllIssuesWithComments(
+	issues: IssueBasic[],
+	user: string,
+): Promise<IssueWithComments[]> {
+	const results: IssueWithComments[] = [];
+	for (let i = 0; i < issues.length; i += MAX_CONCURRENCY) {
+		const batch = issues.slice(i, i + MAX_CONCURRENCY);
+		const enriched = await Promise.all(
+			batch.map((issue) => enrichIssueWithComments(issue, user)),
+		);
+		results.push(...enriched);
+	}
 	return results;
 }

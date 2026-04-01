@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { categorize } from "./categorize.js";
-import type { PRBasic, PRWithCommit, PRWithReviews } from "./github/types.js";
+import { categorize, categorizeIssues } from "./categorize.js";
+import type {
+	IssueWithComments,
+	PRBasic,
+	PRWithCommit,
+	PRWithReviews,
+} from "./github/types.js";
 
 const now = Date.now();
 const hoursAgo = (h: number) => new Date(now - h * 3_600_000).toISOString();
@@ -38,10 +43,33 @@ function makeReviewedPR(overrides: Partial<PRWithReviews> = {}): PRWithReviews {
 	};
 }
 
+function makeIssue(
+	overrides: Partial<IssueWithComments> = {},
+): IssueWithComments {
+	return {
+		number: 100,
+		title: "test issue",
+		author: "alice",
+		repo: "org/repo",
+		url: "https://github.com/org/repo/issues/100",
+		updatedAt: hoursAgo(1),
+		assignees: ["me"],
+		userLastCommentAt: null,
+		latestOtherCommentAt: null,
+		...overrides,
+	};
+}
+
 describe("categorize", () => {
 	test("returns empty array when no PRs", () => {
 		const result = categorize([], [], [], 3, []);
 		expect(result).toEqual([]);
+	});
+
+	test("sets type to pr for all results", () => {
+		const requested = [makePR({ number: 20, author: "bob" })];
+		const result = categorize([], requested, [], 3, []);
+		expect(result[0].type).toBe("pr");
 	});
 
 	test("detects needs-re-review when commits are newer than review", () => {
@@ -225,5 +253,119 @@ describe("categorize", () => {
 		expect(categories).toContain("requested");
 		expect(categories).toContain("waiting-on-others");
 		expect(result).toHaveLength(4);
+	});
+});
+
+describe("categorizeIssues", () => {
+	test("returns empty array when no issues", () => {
+		const result = categorizeIssues([], [], 3);
+		expect(result).toEqual([]);
+	});
+
+	test("sets type to issue for all results", () => {
+		const assigned = [makeIssue({ number: 10 })];
+		const result = categorizeIssues(assigned, [], 3);
+		expect(result[0].type).toBe("issue");
+	});
+
+	test("detects needs-response when new comment exists after user's last comment", () => {
+		const assigned = [
+			makeIssue({
+				number: 10,
+				userLastCommentAt: daysAgo(3),
+				latestOtherCommentAt: daysAgo(1),
+			}),
+		];
+
+		const result = categorizeIssues(assigned, [], 3);
+		expect(result).toHaveLength(1);
+		expect(result[0].category).toBe("needs-re-review");
+		expect(result[0].detail).toContain("New comment");
+	});
+
+	test("detects needs-response when user never commented but others did", () => {
+		const assigned = [
+			makeIssue({
+				number: 10,
+				userLastCommentAt: null,
+				latestOtherCommentAt: daysAgo(1),
+			}),
+		];
+
+		const result = categorizeIssues(assigned, [], 3);
+		expect(result).toHaveLength(1);
+		expect(result[0].category).toBe("needs-re-review");
+	});
+
+	test("detects requested for newly assigned issues with no user activity", () => {
+		const assigned = [
+			makeIssue({
+				number: 20,
+				userLastCommentAt: null,
+				latestOtherCommentAt: null,
+			}),
+		];
+
+		const result = categorizeIssues(assigned, [], 3);
+		expect(result).toHaveLength(1);
+		expect(result[0].category).toBe("requested");
+		expect(result[0].detail).toContain("Assigned");
+	});
+
+	test("detects stale issues with no activity beyond threshold", () => {
+		const assigned = [
+			makeIssue({
+				number: 30,
+				updatedAt: daysAgo(10),
+				userLastCommentAt: daysAgo(10),
+				latestOtherCommentAt: null,
+			}),
+		];
+
+		const result = categorizeIssues(assigned, [], 3);
+		expect(result).toHaveLength(1);
+		expect(result[0].category).toBe("stale");
+		expect(result[0].detail).toContain("No activity for");
+	});
+
+	test("detects waiting-on-others when user commented last", () => {
+		const assigned = [
+			makeIssue({
+				number: 40,
+				updatedAt: hoursAgo(2),
+				userLastCommentAt: hoursAgo(2),
+				latestOtherCommentAt: daysAgo(3),
+			}),
+		];
+
+		const result = categorizeIssues(assigned, [], 3);
+		expect(result).toHaveLength(1);
+		expect(result[0].category).toBe("waiting-on-others");
+		expect(result[0].detail).toContain("You commented last");
+	});
+
+	test("detects mentioned issues", () => {
+		const mentioned = [makeIssue({ number: 50 })];
+
+		const result = categorizeIssues([], mentioned, 3);
+		expect(result).toHaveLength(1);
+		expect(result[0].category).toBe("mentioned");
+		expect(result[0].detail).toContain("Mentioned");
+	});
+
+	test("deduplicates issues across categories", () => {
+		const assigned = [
+			makeIssue({
+				number: 60,
+				userLastCommentAt: daysAgo(3),
+				latestOtherCommentAt: daysAgo(1),
+			}),
+		];
+		const mentioned = [makeIssue({ number: 60 })];
+
+		const result = categorizeIssues(assigned, mentioned, 3);
+		// Should only appear once (needs-response wins over mentioned)
+		expect(result).toHaveLength(1);
+		expect(result[0].category).toBe("needs-re-review");
 	});
 });

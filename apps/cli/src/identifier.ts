@@ -1,6 +1,7 @@
 import type { Config } from "./config.js";
-import { getAuthenticatedUser } from "./github/client.js";
+import { getAuthenticatedUser, getClient } from "./github/client.js";
 import {
+	fetchAssignedIssues,
 	fetchAuthoredPRs,
 	fetchRequestedPRs,
 	fetchReviewedPRs,
@@ -8,7 +9,13 @@ import {
 import type { PRBasic } from "./github/types.js";
 
 export type ParsedIdentifier =
-	| { kind: "url"; owner: string; repo: string; number: number }
+	| {
+			kind: "url";
+			owner: string;
+			repo: string;
+			number: number;
+			type: "pr" | "issue";
+	  }
 	| { kind: "repo-number"; owner: string; repo: string; number: number }
 	| { kind: "number-only"; number: number };
 
@@ -22,18 +29,31 @@ export interface ResolvedPR {
 	updatedAt: string;
 }
 
-const URL_RE = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/;
+const PR_URL_RE = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/;
+const ISSUE_URL_RE = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/;
 const REPO_NUMBER_RE = /^([^/]+\/[^#]+)#(\d+)$/;
 const NUMBER_RE = /^\d+$/;
 
 export function parseIdentifier(input: string): ParsedIdentifier {
-	const urlMatch = input.match(URL_RE);
-	if (urlMatch) {
+	const prUrlMatch = input.match(PR_URL_RE);
+	if (prUrlMatch) {
 		return {
 			kind: "url",
-			owner: urlMatch[1],
-			repo: urlMatch[2],
-			number: Number.parseInt(urlMatch[3], 10),
+			owner: prUrlMatch[1],
+			repo: prUrlMatch[2],
+			number: Number.parseInt(prUrlMatch[3], 10),
+			type: "pr",
+		};
+	}
+
+	const issueUrlMatch = input.match(ISSUE_URL_RE);
+	if (issueUrlMatch) {
+		return {
+			kind: "url",
+			owner: issueUrlMatch[1],
+			repo: issueUrlMatch[2],
+			number: Number.parseInt(issueUrlMatch[3], 10),
+			type: "issue",
 		};
 	}
 
@@ -53,7 +73,7 @@ export function parseIdentifier(input: string): ParsedIdentifier {
 	}
 
 	throw new Error(
-		`Invalid PR identifier: "${input}"\nExamples: 482, org/repo#482, https://github.com/org/repo/pull/482`,
+		`Invalid identifier: "${input}"\nExamples: 482, org/repo#482, https://github.com/org/repo/pull/482, https://github.com/org/repo/issues/482`,
 	);
 }
 
@@ -63,12 +83,40 @@ export async function resolveIdentifier(
 ): Promise<ResolvedPR> {
 	const parsed = parseIdentifier(input);
 
-	if (parsed.kind === "url" || parsed.kind === "repo-number") {
+	if (parsed.kind === "url") {
+		const urlType = parsed.type === "issue" ? "issues" : "pull";
 		return {
 			owner: parsed.owner,
 			repo: parsed.repo,
 			number: parsed.number,
-			url: `https://github.com/${parsed.owner}/${parsed.repo}/pull/${parsed.number}`,
+			url: `https://github.com/${parsed.owner}/${parsed.repo}/${urlType}/${parsed.number}`,
+			title: "",
+			author: "",
+			updatedAt: "",
+		};
+	}
+
+	if (parsed.kind === "repo-number") {
+		// Detect if this is a PR or issue via the API
+		let urlType = "pull";
+		try {
+			const client = getClient();
+			const { data } = await client.issues.get({
+				owner: parsed.owner,
+				repo: parsed.repo,
+				issue_number: parsed.number,
+			});
+			if (!(data as Record<string, unknown>).pull_request) {
+				urlType = "issues";
+			}
+		} catch {
+			// Fall back to PR URL if API call fails
+		}
+		return {
+			owner: parsed.owner,
+			repo: parsed.repo,
+			number: parsed.number,
+			url: `https://github.com/${parsed.owner}/${parsed.repo}/${urlType}/${parsed.number}`,
 			title: "",
 			author: "",
 			updatedAt: "",
@@ -76,57 +124,78 @@ export async function resolveIdentifier(
 	}
 
 	// Number-only: search the user's queue
-	return findPRByNumber(parsed.number, config);
+	return findItemByNumber(parsed.number, config);
 }
 
-async function findPRByNumber(
-	prNumber: number,
+async function findItemByNumber(
+	itemNumber: number,
 	config: Config,
 ): Promise<ResolvedPR> {
 	const user = config.user ?? (await getAuthenticatedUser());
 
-	process.stderr.write(`Searching for PR #${prNumber}...\n`);
+	process.stderr.write(`Searching for #${itemNumber}...\n`);
 
-	const [reviewed, requested, authored] = await Promise.all([
+	const [reviewed, requested, authored, assignedIssues] = await Promise.all([
 		fetchReviewedPRs(user, config.repos),
 		fetchRequestedPRs(user, config.repos),
 		fetchAuthoredPRs(user, config.repos),
+		fetchAssignedIssues(user, config.repos),
 	]);
 
 	const seen = new Set<string>();
-	const allPRs: PRBasic[] = [];
+	const allItems: (PRBasic & { itemType?: string })[] = [];
+
 	for (const pr of [...reviewed, ...requested, ...authored]) {
 		const key = `${pr.repo}#${pr.number}`;
 		if (!seen.has(key)) {
 			seen.add(key);
-			allPRs.push(pr);
+			allItems.push(pr);
+		}
+	}
+	for (const issue of assignedIssues) {
+		const key = `${issue.repo}#${issue.number}`;
+		if (!seen.has(key)) {
+			seen.add(key);
+			allItems.push({
+				number: issue.number,
+				title: issue.title,
+				author: issue.author,
+				repo: issue.repo,
+				url: issue.url,
+				isDraft: false,
+				updatedAt: issue.updatedAt,
+				requestedReviewers: [],
+				itemType: "issue",
+			});
 		}
 	}
 
-	const matches = allPRs.filter((pr) => pr.number === prNumber);
+	const matches = allItems.filter((item) => item.number === itemNumber);
 
 	if (matches.length === 0) {
 		throw new Error(
-			`No PR #${prNumber} found in your queue. Use the full format: org/repo#${prNumber}`,
+			`No #${itemNumber} found in your queue. Use the full format: org/repo#${itemNumber}`,
 		);
 	}
 
 	if (matches.length > 1) {
-		const options = matches.map((pr) => `  ${pr.repo}#${pr.number}`).join("\n");
+		const options = matches
+			.map((item) => `  ${item.repo}#${item.number}`)
+			.join("\n");
 		throw new Error(
-			`Multiple PRs found with #${prNumber}:\n${options}\nSpecify which one: prq open org/repo#${prNumber}`,
+			`Multiple items found with #${itemNumber}:\n${options}\nSpecify which one: prq open org/repo#${itemNumber}`,
 		);
 	}
 
-	const pr = matches[0];
-	const [owner, repo] = pr.repo.split("/");
+	const item = matches[0];
+	const [owner, repo] = item.repo.split("/");
 	return {
 		owner,
 		repo,
-		number: pr.number,
-		url: pr.url,
-		title: pr.title,
-		author: pr.author,
-		updatedAt: pr.updatedAt,
+		number: item.number,
+		url: item.url,
+		title: item.title,
+		author: item.author,
+		updatedAt: item.updatedAt,
 	};
 }

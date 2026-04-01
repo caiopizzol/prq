@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { CategorizedPR } from "./types.js";
+import type { CategorizedItem } from "./types.js";
 
 const STATE_DIR = path.join(
 	process.env.HOME ?? process.env.USERPROFILE ?? "",
@@ -16,8 +16,8 @@ interface PRState {
 
 type StateData = Record<string, PRState>;
 
-function prKey(pr: { repo: string; number: number }): string {
-	return `${pr.repo}#${pr.number}`;
+function itemKey(item: { repo: string; number: number }): string {
+	return `${item.repo}#${item.number}`;
 }
 
 function load(): StateData {
@@ -52,9 +52,9 @@ export function loadInProgress(): Set<string> {
 	);
 }
 
-export function toggleInProgress(pr: CategorizedPR): boolean {
+export function toggleInProgress(item: CategorizedItem): boolean {
 	const state = load();
-	const k = prKey(pr);
+	const k = itemKey(item);
 	const entry = state[k] ?? {};
 	if (entry.inProgress) {
 		delete entry.inProgress;
@@ -67,16 +67,16 @@ export function toggleInProgress(pr: CategorizedPR): boolean {
 }
 
 export function applyInProgress(
-	prs: CategorizedPR[],
+	items: CategorizedItem[],
 	reviewTimestamps?: Map<string, string>,
-): CategorizedPR[] {
+): CategorizedItem[] {
 	const state = load();
 	const inProgressKeys = new Map(
 		Object.entries(state)
 			.filter(([, v]) => v.inProgress)
 			.map(([k, v]) => [k, v.inProgress as string | boolean]),
 	);
-	if (inProgressKeys.size === 0) return prs;
+	if (inProgressKeys.size === 0) return items;
 
 	let changed = false;
 
@@ -96,8 +96,8 @@ export function applyInProgress(
 		}
 	}
 
-	// Clean up keys for PRs no longer in the queue (merged/closed)
-	const activeKeys = new Set(prs.map(prKey));
+	// Clean up keys for items no longer in the queue (merged/closed)
+	const activeKeys = new Set(items.map(itemKey));
 	for (const k of Array.from(inProgressKeys.keys())) {
 		if (!activeKeys.has(k)) {
 			delete state[k]?.inProgress;
@@ -106,24 +106,24 @@ export function applyInProgress(
 	}
 	if (changed) save(state);
 
-	return prs.map((pr) =>
-		inProgressKeys.has(prKey(pr))
-			? { ...pr, category: "in-progress" as const }
-			: pr,
+	return items.map((item) =>
+		inProgressKeys.has(itemKey(item))
+			? { ...item, category: "in-progress" as const }
+			: item,
 	);
 }
 
-export function applyNudged(prs: CategorizedPR[]): CategorizedPR[] {
+export function applyNudged(items: CategorizedItem[]): CategorizedItem[] {
 	const state = load();
 	const nudgedKeys = new Map(
 		Object.entries(state)
 			.filter(([, v]) => v.nudgedAt)
 			.map(([k, v]) => [k, v.nudgedAt as string]),
 	);
-	if (nudgedKeys.size === 0) return prs;
+	if (nudgedKeys.size === 0) return items;
 
-	// Clean up nudgedAt for PRs no longer in the queue (merged/closed)
-	const activeKeys = new Set(prs.map(prKey));
+	// Clean up nudgedAt for items no longer in the queue (merged/closed)
+	const activeKeys = new Set(items.map(itemKey));
 	let changed = false;
 	for (const k of Array.from(nudgedKeys.keys())) {
 		if (!activeKeys.has(k)) {
@@ -133,32 +133,32 @@ export function applyNudged(prs: CategorizedPR[]): CategorizedPR[] {
 	}
 	if (changed) save(state);
 
-	return prs.map((pr) => {
-		const nudgedAt = nudgedKeys.get(prKey(pr));
-		if (!nudgedAt) return pr;
+	return items.map((item) => {
+		const nudgedAt = nudgedKeys.get(itemKey(item));
+		if (!nudgedAt) return item;
 		// Don't override in-progress
-		if (pr.category === "in-progress") return pr;
+		if (item.category === "in-progress") return item;
 		const days = Math.floor(
 			(Date.now() - new Date(nudgedAt).getTime()) / 86_400_000,
 		);
 		const ago = days === 0 ? "today" : `${days}d ago`;
-		return { ...pr, category: "nudged" as const, detail: `Nudged ${ago}` };
+		return { ...item, category: "nudged" as const, detail: `Nudged ${ago}` };
 	});
 }
 
 // --- Nudge ---
 
-export function getNudgedAt(pr: {
+export function getNudgedAt(item: {
 	repo: string;
 	number: number;
 }): string | null {
 	const state = load();
-	return state[prKey(pr)]?.nudgedAt ?? null;
+	return state[itemKey(item)]?.nudgedAt ?? null;
 }
 
-export function markNudged(pr: { repo: string; number: number }): void {
+export function markNudged(item: { repo: string; number: number }): void {
 	const state = load();
-	const k = prKey(pr);
+	const k = itemKey(item);
 	state[k] = { ...state[k], nudgedAt: new Date().toISOString() };
 	save(state);
 }

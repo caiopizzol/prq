@@ -8,10 +8,11 @@ import {
 	type SearchState,
 } from "./interactive.js";
 import { markNudged, toggleInProgress } from "./state.js";
-import type { CategorizedPR, StatusResult } from "./types.js";
+import type { CategorizedItem, StatusResult } from "./types.js";
 
-function makePR(overrides: Partial<CategorizedPR> = {}): CategorizedPR {
+function makeItem(overrides: Partial<CategorizedItem> = {}): CategorizedItem {
 	return {
+		type: "pr",
 		category: "requested",
 		repo: "org/repo",
 		number: 1,
@@ -25,11 +26,11 @@ function makePR(overrides: Partial<CategorizedPR> = {}): CategorizedPR {
 	};
 }
 
-const prs: CategorizedPR[] = [
-	makePR({ number: 100, title: "fix: arrow key nav", author: "alice" }),
-	makePR({ number: 2352, title: "feat: column separators", author: "bob" }),
-	makePR({ number: 482, title: "refactor: extract utils", author: "carol" }),
-	makePR({ number: 99, title: "chore: bump deps", author: "alice" }),
+const items: CategorizedItem[] = [
+	makeItem({ number: 100, title: "fix: arrow key nav", author: "alice" }),
+	makeItem({ number: 2352, title: "feat: column separators", author: "bob" }),
+	makeItem({ number: 482, title: "refactor: extract utils", author: "carol" }),
+	makeItem({ number: 99, title: "chore: bump deps", author: "alice" }),
 ];
 
 function makeSearchState(overrides: Partial<SearchState> = {}): SearchState {
@@ -45,58 +46,58 @@ function makeSearchState(overrides: Partial<SearchState> = {}): SearchState {
 
 describe("findMatch", () => {
 	test("exact PR number match", () => {
-		expect(findMatch(prs, "482")).toBe(2);
-		expect(findMatch(prs, "2352")).toBe(1);
-		expect(findMatch(prs, "100")).toBe(0);
+		expect(findMatch(items, "482")).toBe(2);
+		expect(findMatch(items, "2352")).toBe(1);
+		expect(findMatch(items, "100")).toBe(0);
 	});
 
 	test("PR number with # prefix", () => {
-		expect(findMatch(prs, "#482")).toBe(2);
-		expect(findMatch(prs, "#2352")).toBe(1);
+		expect(findMatch(items, "#482")).toBe(2);
+		expect(findMatch(items, "#2352")).toBe(1);
 	});
 
 	test("partial number substring match", () => {
-		expect(findMatch(prs, "23")).toBe(1);
+		expect(findMatch(items, "23")).toBe(1);
 	});
 
 	test("title substring match", () => {
-		expect(findMatch(prs, "arrow")).toBe(0);
-		expect(findMatch(prs, "separators")).toBe(1);
-		expect(findMatch(prs, "extract")).toBe(2);
+		expect(findMatch(items, "arrow")).toBe(0);
+		expect(findMatch(items, "separators")).toBe(1);
+		expect(findMatch(items, "extract")).toBe(2);
 	});
 
 	test("title match is case-insensitive", () => {
-		expect(findMatch(prs, "Arrow")).toBe(0);
-		expect(findMatch(prs, "REFACTOR")).toBe(2);
+		expect(findMatch(items, "Arrow")).toBe(0);
+		expect(findMatch(items, "REFACTOR")).toBe(2);
 	});
 
 	test("author match", () => {
-		expect(findMatch(prs, "bob")).toBe(1);
-		expect(findMatch(prs, "carol")).toBe(2);
+		expect(findMatch(items, "bob")).toBe(1);
+		expect(findMatch(items, "carol")).toBe(2);
 	});
 
 	test("author match is case-insensitive", () => {
-		expect(findMatch(prs, "Bob")).toBe(1);
+		expect(findMatch(items, "Bob")).toBe(1);
 	});
 
-	test("returns first match when multiple PRs match", () => {
-		expect(findMatch(prs, "alice")).toBe(0);
+	test("returns first match when multiple items match", () => {
+		expect(findMatch(items, "alice")).toBe(0);
 	});
 
 	test("returns -1 for empty query", () => {
-		expect(findMatch(prs, "")).toBe(-1);
+		expect(findMatch(items, "")).toBe(-1);
 	});
 
 	test("returns -1 when nothing matches", () => {
-		expect(findMatch(prs, "zzz")).toBe(-1);
-		expect(findMatch(prs, "9999")).toBe(-1);
+		expect(findMatch(items, "zzz")).toBe(-1);
+		expect(findMatch(items, "9999")).toBe(-1);
 	});
 
 	test("exact number takes priority over substring", () => {
-		expect(findMatch(prs, "99")).toBe(3);
+		expect(findMatch(items, "99")).toBe(3);
 	});
 
-	test("works with empty PR list", () => {
+	test("works with empty item list", () => {
 		expect(findMatch([], "482")).toBe(-1);
 	});
 });
@@ -104,7 +105,7 @@ describe("findMatch", () => {
 describe("handleSearchKey", () => {
 	test("typing a character appends to buffer and jumps to match", () => {
 		const state = makeSearchState();
-		handleSearchKey(state, "b", prs);
+		handleSearchKey(state, "b", items);
 		expect(state.searchBuffer).toBe("b");
 		expect(state.selectedIndex).toBe(1); // "bob" is author of index 1
 		expect(state.searchMode).toBe(true);
@@ -112,9 +113,9 @@ describe("handleSearchKey", () => {
 
 	test("typing multiple characters accumulates buffer", () => {
 		const state = makeSearchState();
-		handleSearchKey(state, "4", prs);
-		handleSearchKey(state, "8", prs);
-		handleSearchKey(state, "2", prs);
+		handleSearchKey(state, "4", items);
+		handleSearchKey(state, "8", items);
+		handleSearchKey(state, "2", items);
 		expect(state.searchBuffer).toBe("482");
 		expect(state.selectedIndex).toBe(2); // PR #482
 	});
@@ -125,7 +126,7 @@ describe("handleSearchKey", () => {
 			selectedIndex: 2,
 			preSearchIndex: 0,
 		});
-		handleSearchKey(state, "\r", prs);
+		handleSearchKey(state, "\r", items);
 		expect(state.searchMode).toBe(false);
 		expect(state.searchBuffer).toBe("");
 		expect(state.selectedIndex).toBe(2); // stays at matched position
@@ -137,7 +138,7 @@ describe("handleSearchKey", () => {
 			selectedIndex: 2,
 			preSearchIndex: 0,
 		});
-		handleSearchKey(state, "\x1B", prs);
+		handleSearchKey(state, "\x1B", items);
 		expect(state.searchMode).toBe(false);
 		expect(state.searchBuffer).toBe("");
 		expect(state.selectedIndex).toBe(0); // restored to preSearchIndex
@@ -149,7 +150,7 @@ describe("handleSearchKey", () => {
 			selectedIndex: 1,
 			preSearchIndex: 3,
 		});
-		handleSearchKey(state, "\x03", prs);
+		handleSearchKey(state, "\x03", items);
 		expect(state.searchMode).toBe(false);
 		expect(state.selectedIndex).toBe(3);
 	});
@@ -159,7 +160,7 @@ describe("handleSearchKey", () => {
 			searchBuffer: "bo",
 			selectedIndex: 1,
 		});
-		handleSearchKey(state, "\x7F", prs);
+		handleSearchKey(state, "\x7F", items);
 		expect(state.searchBuffer).toBe("b");
 		expect(state.selectedIndex).toBe(1); // "b" still matches "bob" at index 1
 		expect(state.searchMode).toBe(true);
@@ -171,7 +172,7 @@ describe("handleSearchKey", () => {
 			selectedIndex: 1,
 			preSearchIndex: 3,
 		});
-		handleSearchKey(state, "\x7F", prs);
+		handleSearchKey(state, "\x7F", items);
 		expect(state.searchBuffer).toBe("");
 		expect(state.selectedIndex).toBe(3); // restored to preSearchIndex
 		expect(state.searchMode).toBe(true); // still in search mode
@@ -179,9 +180,9 @@ describe("handleSearchKey", () => {
 
 	test("no match sets message", () => {
 		const state = makeSearchState();
-		handleSearchKey(state, "z", prs);
-		handleSearchKey(state, "z", prs);
-		handleSearchKey(state, "z", prs);
+		handleSearchKey(state, "z", items);
+		handleSearchKey(state, "z", items);
+		handleSearchKey(state, "z", items);
 		expect(state.searchBuffer).toBe("zzz");
 		expect(state.message).toBe("no match");
 		expect(state.searchMode).toBe(true);
@@ -189,13 +190,13 @@ describe("handleSearchKey", () => {
 
 	test("no match does not change selectedIndex", () => {
 		const state = makeSearchState({ selectedIndex: 2 });
-		handleSearchKey(state, "z", prs);
+		handleSearchKey(state, "z", items);
 		expect(state.selectedIndex).toBe(2);
 	});
 
 	test("ignores non-printable characters", () => {
 		const state = makeSearchState({ selectedIndex: 0 });
-		handleSearchKey(state, "\x01", prs); // Ctrl+A
+		handleSearchKey(state, "\x01", items); // Ctrl+A
 		expect(state.searchBuffer).toBe("");
 		expect(state.selectedIndex).toBe(0);
 	});
@@ -204,8 +205,8 @@ describe("handleSearchKey", () => {
 const STATE_DIR = path.join(process.env.HOME ?? "", ".config", "prq");
 const STATE_PATH = path.join(STATE_DIR, "state.json");
 
-function makeResult(prs: CategorizedPR[], user = "me"): StatusResult {
-	return { user, timestamp: new Date().toISOString(), prs };
+function makeResult(items: CategorizedItem[], user = "me"): StatusResult {
+	return { user, timestamp: new Date().toISOString(), items };
 }
 
 describe("recomputeState", () => {
@@ -215,98 +216,98 @@ describe("recomputeState", () => {
 		} catch {}
 	});
 
-	test("moves nudged PR to nudged category after markNudged", () => {
-		const stalePR = makePR({
+	test("moves nudged item to nudged category after markNudged", () => {
+		const staleItem = makeItem({
 			number: 42,
 			category: "stale",
 			detail: "No activity for 5 days",
 		});
-		const requestedPR = makePR({
+		const requestedItem = makeItem({
 			number: 10,
 			category: "requested",
 			detail: "Requested 1d ago",
 		});
-		const sourcePrs = [stalePR, requestedPR];
+		const sourceItems = [staleItem, requestedItem];
 
 		const state = {
-			result: makeResult([stalePR, requestedPR]),
-			sourcePrs,
+			result: makeResult([staleItem, requestedItem]),
+			sourceItems,
 			selectedIndex: 0,
 		};
 
 		// Simulate what the action hook does after a successful nudge
 		markNudged({ repo: "org/repo", number: 42 });
-		recomputeState(state, stalePR);
+		recomputeState(state, staleItem);
 
-		const nudgedPR = state.result.prs.find((p) => p.number === 42);
-		expect(nudgedPR).toBeDefined();
-		expect(nudgedPR?.category).toBe("nudged");
-		expect(nudgedPR?.detail).toMatch(/^Nudged /);
+		const nudgedItem = state.result.items.find((p) => p.number === 42);
+		expect(nudgedItem).toBeDefined();
+		expect(nudgedItem?.category).toBe("nudged");
+		expect(nudgedItem?.detail).toMatch(/^Nudged /);
 	});
 
-	test("moves in-progress PR to in-progress category after toggle", () => {
-		const stalePR = makePR({
+	test("moves in-progress item to in-progress category after toggle", () => {
+		const staleItem = makeItem({
 			number: 42,
 			category: "stale",
 			detail: "No activity for 5 days",
 		});
-		const sourcePrs = [stalePR];
+		const sourceItems = [staleItem];
 
 		const state = {
-			result: makeResult([stalePR]),
-			sourcePrs,
+			result: makeResult([staleItem]),
+			sourceItems,
 			selectedIndex: 0,
 		};
 
-		toggleInProgress(stalePR);
-		recomputeState(state, stalePR);
+		toggleInProgress(staleItem);
+		recomputeState(state, staleItem);
 
-		expect(state.result.prs[0].category).toBe("in-progress");
+		expect(state.result.items[0].category).toBe("in-progress");
 	});
 
-	test("selectedIndex follows target PR to new position", () => {
+	test("selectedIndex follows target item to new position", () => {
 		// Order: in-progress comes before stale in category sort
-		const stalePR = makePR({
+		const staleItem = makeItem({
 			number: 42,
 			repo: "org/repo",
 			category: "stale",
 		});
-		const requestedPR = makePR({
+		const requestedItem = makeItem({
 			number: 10,
 			repo: "org/repo",
 			category: "requested",
 		});
 		// Source order: requested (idx 0), stale (idx 1)
-		const sourcePrs = [requestedPR, stalePR];
+		const sourceItems = [requestedItem, staleItem];
 
 		const state = {
-			result: makeResult(sourcePrs),
-			sourcePrs,
-			selectedIndex: 1, // pointing at stalePR
+			result: makeResult(sourceItems),
+			sourceItems,
+			selectedIndex: 1, // pointing at staleItem
 		};
 
-		// Mark stalePR as nudged — it should move to the nudged category
+		// Mark staleItem as nudged — it should move to the nudged category
 		markNudged({ repo: "org/repo", number: 42 });
-		recomputeState(state, stalePR);
+		recomputeState(state, staleItem);
 
-		// selectedIndex should follow PR #42 to its new position
-		const newPR = state.result.prs[state.selectedIndex];
-		expect(newPR.number).toBe(42);
+		// selectedIndex should follow item #42 to its new position
+		const newItem = state.result.items[state.selectedIndex];
+		expect(newItem.number).toBe(42);
 	});
 
-	test("selectedIndex clamped when target PR disappears", () => {
-		const pr1 = makePR({ number: 1 });
-		const pr2 = makePR({ number: 2 });
-		const sourcePrs = [pr1, pr2];
+	test("selectedIndex clamped when target item disappears", () => {
+		const item1 = makeItem({ number: 1 });
+		const item2 = makeItem({ number: 2 });
+		const sourceItems = [item1, item2];
 
 		const state = {
-			result: makeResult(sourcePrs),
-			sourcePrs,
+			result: makeResult(sourceItems),
+			sourceItems,
 			selectedIndex: 5, // out of range
 		};
 
-		// Target PR not in list — selectedIndex should clamp
+		// Target item not in list — selectedIndex should clamp
 		recomputeState(state, { repo: "org/gone", number: 999 });
-		expect(state.selectedIndex).toBeLessThan(state.result.prs.length);
+		expect(state.selectedIndex).toBeLessThan(state.result.items.length);
 	});
 });

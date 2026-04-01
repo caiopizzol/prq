@@ -1,12 +1,15 @@
 import { sortByCategory } from "../categories.js";
-import { categorize } from "../categorize.js";
+import { categorize, categorizeIssues } from "../categorize.js";
 import type { Config } from "../config.js";
 import { getAuthenticatedUser } from "../github/client.js";
 import {
+	enrichAllIssuesWithComments,
 	enrichAllWithCommits,
 	enrichAllWithReviews,
 	fetchAllOpenPRs,
+	fetchAssignedIssues,
 	fetchAuthoredPRs,
+	fetchMentionedIssues,
 	fetchRequestedPRs,
 	fetchReviewedPRs,
 } from "../github/queries.js";
@@ -23,18 +26,26 @@ export async function statusCommand(
 ): Promise<void> {
 	const user = config.user ?? (await getAuthenticatedUser());
 
-	process.stderr.write(`Fetching PRs for ${user}...\n`);
+	process.stderr.write(`Fetching PRs and issues for ${user}...\n`);
 
-	// Phase 1: Discovery (parallel search queries)
-	const [reviewedRaw, requestedPRs, authoredPRs, allOpenPRs] =
-		await Promise.all([
-			fetchReviewedPRs(user, config.repos),
-			fetchRequestedPRs(user, config.repos),
-			fetchAuthoredPRs(user, config.repos),
-			config.showAllOpen
-				? fetchAllOpenPRs(config.repos)
-				: Promise.resolve([] as PRBasic[]),
-		]);
+	// Phase 1: Discovery (parallel search queries for PRs AND issues)
+	const [
+		reviewedRaw,
+		requestedPRs,
+		authoredPRs,
+		allOpenPRs,
+		assignedIssuesRaw,
+		mentionedIssuesRaw,
+	] = await Promise.all([
+		fetchReviewedPRs(user, config.repos),
+		fetchRequestedPRs(user, config.repos),
+		fetchAuthoredPRs(user, config.repos),
+		config.showAllOpen
+			? fetchAllOpenPRs(config.repos)
+			: Promise.resolve([] as PRBasic[]),
+		fetchAssignedIssues(user, config.repos),
+		fetchMentionedIssues(user, config.repos),
+	]);
 
 	const parts = [
 		`${reviewedRaw.length} reviewed`,
@@ -42,42 +53,56 @@ export async function statusCommand(
 		`${authoredPRs.length} authored`,
 	];
 	if (config.showAllOpen) parts.push(`${allOpenPRs.length} open`);
+	parts.push(`${assignedIssuesRaw.length} assigned issues`);
+	if (mentionedIssuesRaw.length > 0)
+		parts.push(`${mentionedIssuesRaw.length} mentioned issues`);
 	process.stderr.write(`Found ${parts.join(", ")}\n`);
 
-	// Phase 2: Enrich reviewed PRs with review/commit timestamps
-	const [reviewedPRs, openPRsEnriched] = await Promise.all([
-		enrichAllWithReviews(reviewedRaw, user),
-		config.showAllOpen ? enrichAllWithCommits(allOpenPRs) : Promise.resolve([]),
-	]);
+	// Phase 2: Enrich (parallel)
+	const [reviewedPRs, openPRsEnriched, assignedIssues, mentionedIssues] =
+		await Promise.all([
+			enrichAllWithReviews(reviewedRaw, user),
+			config.showAllOpen
+				? enrichAllWithCommits(allOpenPRs)
+				: Promise.resolve([]),
+			enrichAllIssuesWithComments(assignedIssuesRaw, user),
+			enrichAllIssuesWithComments(mentionedIssuesRaw, user),
+		]);
 
-	// Phase 3: Categorize
-	const categorized = categorize(
+	// Phase 3: Categorize (PRs and issues separately, then merge)
+	const categorizedPRs = categorize(
 		reviewedPRs,
 		requestedPRs,
 		authoredPRs,
 		config.staleDays,
 		openPRsEnriched,
 	);
+	const categorizedIssues = categorizeIssues(
+		assignedIssues,
+		mentionedIssues,
+		config.staleDays,
+	);
+	const allCategorized = [...categorizedPRs, ...categorizedIssues];
 
 	// Phase 4: Apply local state overlays
 	const reviewTimestamps = new Map<string, string>();
 	for (const pr of reviewedPRs) {
 		reviewTimestamps.set(`${pr.repo}#${pr.number}`, pr.userLastReviewedAt);
 	}
-	const prs = sortByCategory(
-		applyNudged(applyInProgress(categorized, reviewTimestamps)),
+	const items = sortByCategory(
+		applyNudged(applyInProgress(allCategorized, reviewTimestamps)),
 	);
 
 	const result: StatusResult = {
 		user,
 		timestamp: new Date().toISOString(),
-		prs,
+		items,
 	};
 
 	if (json) {
 		process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 	} else if (interactive && process.stdin.isTTY) {
-		await interactiveMode(result, categorized, config);
+		await interactiveMode(result, allCategorized, config);
 	} else {
 		process.stdout.write(formatStatus(result));
 	}
