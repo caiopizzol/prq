@@ -25,7 +25,7 @@ export function createCLI(): Command {
 
 	program
 		.name("prq")
-		.description("PR Queue — see what code reviews need your attention")
+		.description("See what needs your attention — PRs, issues, tickets")
 		.version(getVersion());
 
 	program

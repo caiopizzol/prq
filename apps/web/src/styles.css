@@ -199,6 +199,14 @@ hr {
 	border-color: var(--faint);
 }
 
+/* ── Roadmap hint ── */
+.roadmap-hint {
+	font-size: 13px;
+	color: var(--dim);
+	margin-top: 24px;
+	text-align: center;
+}
+
 /* ── Footer ── */
 footer {
 	padding: 64px 0 80px;

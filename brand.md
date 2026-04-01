@@ -1,7 +1,7 @@
 ---
 name: "prq"
-tagline: "One command. Zero noise."
-version: 1
+tagline: "What needs you, right now."
+version: 2
 language: en
 ---
 
@@ -11,88 +11,97 @@ language: en
 
 ### Overview
 
-prq is a CLI tool that tells developers exactly what code reviews need their attention — categorized by why, not just that they exist. One command, instant answer, zero setup.
+prq is a developer CLI that tells you what needs your attention — PRs, issues, tickets — and lets you act on it without leaving the terminal. One command. Everything that needs you. Categorized by why.
 
-Built out of personal frustration: the daily ritual of opening GitHub, hunting through notifications, copying PR URLs, cross-referencing what actually needs action. That workflow is broken. prq replaces it with a single command.
+It started as a PR review queue. That was the first problem: every morning, open GitHub, scroll notifications, click into PRs, cross-reference what actually needs action. That workflow is broken. prq replaced it with a single command.
 
-**What it really does:** prq reads the state of every PR you're involved in and tells you what changed since you last looked. It understands review semantics — not just "you're a reviewer," but "you reviewed this, and new commits landed after." It turns GitHub's raw notification stream into an actionable, categorized queue.
+But the problem is bigger than PRs. Developers today are jumping between GitHub, Linear, Slack, email — four platforms before they write a line of code. Every tool has its own notification system, its own idea of what's urgent, its own inbox. The result: scattered attention, dropped work, and the constant feeling that something is slipping through the cracks.
 
-**The problem it solves:** Developers lose track of what needs their attention. GitHub's notification system treats a bot comment the same as an urgent review request. The "awaiting your review" filter misses PRs where authors addressed feedback but forgot to re-request review. Stale PRs sit for days. The result: slower shipping, frustrated teammates, dropped work.
+AI made it worse and better. More code is being generated. More PRs, more issues, more tickets. But now developers have agents — Claude Code, Codex, Copilot — that can do the work if you point them at the right thing. The missing piece isn't another agent. It's knowing what to point the agent at.
 
-AI is accelerating this. More code is being generated, which means more PRs, which means more reviews. The review queue is growing faster than the tools to manage it. The solutions the market offers are either "let AI review it" or "buy a platform." Neither helps the person staring at fifteen open PRs trying to figure out which ones actually need them.
+**What prq really does:** prq reads the state of everything you're involved in across systems and tells you what changed since you last looked. It understands semantics — not just "you're a reviewer," but "you reviewed this, and new commits landed after." Not just "this ticket is assigned to you," but "this ticket has been in progress for a week with no linked PR." It turns scattered signals into an actionable, categorized queue.
+
+**The problem it solves:** Developers have no single place to answer "what should I do next?" Every tool shows its own slice. No tool shows the full picture — ordered by urgency, categorized by action needed, actionable from where the developer already is.
 
 **The transformation:**
-- Before: Open GitHub. Scroll notifications. Click into PRs. Cross-reference. Build a mental model. Repeat daily.
+- Before: Open GitHub. Open Linear. Check Slack. Check email. Cross-reference. Build a mental model. Repeat daily.
 - After: `prq` — and you know exactly where you stand.
 
-**Long-term ambition:** A real-time attention layer for developers — PRs, issues, tickets — surfaced where they work, designed for agents.
+**Long-term ambition:** The terminal interface for developer work — the place where you see what needs you, dispatch agents to handle it, and never leave the command line.
 
 ### Positioning
 
-**Category:** Review queue CLI
+**Category:** Developer attention CLI
 
-**Stance:** Reviewer-first. Every tool in this space is either author-centric ("never wait on review again") or automation-centric ("let AI review it"). prq is the only tool that speaks to the reviewer — the person who opens their laptop and asks "what needs me?"
+prq creates a new category. Not a dashboard (those display). Not a notification manager (those pipe). Not a project management tool (those track). prq is an attention engine — it understands the semantics of your work across systems and tells you what needs action, categorized by why.
+
+**Stance:** Developer-first. Every tool in this space is either a platform that wants you to change your workflow, a dashboard that shows everything without opinion, or a notification pipe that forwards what someone else decided matters. prq is the tool that understands *your* work and tells *you* what to do next.
 
 **What prq is NOT:**
-- Not a dashboard. Not a web app. Not a platform.
+- Not a coding agent. Not Claude Code, not Codex, not Copilot. We don't write code — we tell you (or your agent) what code to write.
+- Not a project management tool. Not Linear, not Jira, not GitHub Projects. We don't track work — we surface what's stuck.
+- Not a dashboard. Not a web app. Not a platform. We don't display — we triage.
 - Not a notification manager. We don't show you notifications — we tell you what needs action.
-- Not a workflow replacement. We don't change how you use GitHub — we make it visible.
-- Not an AI code reviewer. We don't read your diffs — we read your queue.
+- Not a workflow replacement. We don't change how you use GitHub or Linear — we make them visible from one place.
 
 **Competitive landscape:**
 
-The market splits into five tiers:
+The market splits into layers:
 
-1. **Heavy platforms** (Graphite, Aviator) — require workflow adoption, team buy-in, paid plans. They replace your Git workflow with stacked PRs, merge queues, AI reviewers. High value, high commitment.
-2. **AI reviewers** (CodeRabbit, Qodo, CodeAnt AI) — bots that do the reviewing for you. They automate the content of reviews, not the logistics. They don't help you manage what's waiting.
+1. **Heavy platforms** (Graphite, Aviator) — require workflow adoption, team buy-in, paid plans. They replace your Git workflow. High value, high commitment.
+2. **AI reviewers** (CodeRabbit, Qodo) — bots that review code for you. They automate the content of reviews, not the logistics.
 3. **General dashboards** (gh-dash) — rich terminal UIs that show PRs and issues by filter. Powerful, configurable, but not opinionated about what matters. They display. They don't triage.
-4. **Notification tools** (gh-notify, Octobox, Gitify) — surface raw GitHub notifications with better filtering. They don't understand PR review state — they just pipe what GitHub already sends.
-5. **Review experience tools** (Pull Panda) — optimize the act of reviewing a single PR. Better UX for reading diffs, understanding changes. Don't answer "which PR should I review next?"
+4. **Notification tools** (gh-notify, Gitify) — surface GitHub notifications with better filtering. They don't understand work semantics.
+5. **Single-system CLIs** (linear-cli, gh) — interact with one platform from the terminal. Useful, but siloed. You still need three tools for three systems.
+6. **Coding agents** (Claude Code, Codex, Copilot) — execute work. Powerful, but need direction. They answer "how" but not "what."
 
-prq sits in the gap: **an opinionated, zero-config CLI that understands PR review semantics and categorizes by action needed.**
+prq sits in the gap between knowing and doing: **an opinionated CLI that understands your work across systems, tells you what needs attention, and lets you dispatch action — to yourself, to a browser, or to an agent.**
 
 **Structural differentials:**
-- **Action-oriented categories** — "Needs re-review" (new commits after your review), "Requested" (awaiting first review), "Stale" (no activity), "Your PRs waiting" (author perspective). No other tool categorizes this way.
-- **Zero config** — works the moment `gh` is authenticated. No YAML, no Nerd Fonts, no setup wizard.
-- **Single-purpose** — does one thing. Doesn't try to replace GitHub, manage stacked PRs, or run CI.
-- **Nudge as a primitive** — built-in ability to poke stale PRs. Turns passive monitoring into active queue management.
-- **Composable** — JSON output, custom actions with template variables, pipes to scripts and agents. `prq review` runs whatever you tell it to — Claude Code, Codex, a shell script, gh CLI. No other queue tool does this.
-- **Reviewer-first** — built for the person doing reviews, not the person waiting on them. The reviewer's perspective is the default.
+- **Semantic categorization** — understands *why* something needs you, not just that it exists. "Needs re-review" (new commits after your review), "Stale" (no activity for N days), "Blocked" (waiting on someone). No other tool categorizes this way.
+- **Cross-system** — GitHub PRs, GitHub issues, Linear tickets. One command, one queue, one mental model. Everything else is siloed.
+- **Zero config** — works the moment your tools are authenticated. No YAML, no setup wizard, no onboarding.
+- **Agent-native** — custom actions with template variables let you dispatch to Claude Code, Codex, scripts, or any tool. prq is the attention layer; agents are the execution layer.
+- **Composable** — JSON output, custom actions, pipes to scripts. Terminal-native, Unix-philosophy composability.
+- **Nudge as a primitive** — built-in ability to poke stale work. Turns passive monitoring into active queue management.
 
-**Territory:** prq owns the concept of **the review queue as a first-class object** — not a filter on a dashboard, not a subset of notifications, but a standalone, semantic, actionable queue.
+**Territory:** prq owns the concept of **developer attention as a first-class object** — not a filter on a dashboard, not a subset of notifications, but a unified, semantic, actionable queue across every system that generates work for a developer.
 
 ### Personality
 
-**Dominant archetype:** The Instrument — precise, single-purpose, does one thing perfectly. Like `git status` for reviews. Like a tuning fork: hit it and you get a clear signal.
+**Dominant archetype:** The Interface — the calm layer between a developer and the chaos of their work. Like Raycast for the terminal. Like `git status` for everything. Hit `prq` and you get a clear signal about the state of your world.
 
 **Attributes the brand transmits:**
 - Direct
 - Terminal-native
 - Opinionated
 - Lightweight
-- Honest
+- Calm
+- Unified
 
 **What prq IS:**
-- A scalpel, not a Swiss Army knife
+- A clear signal in a noisy system
 - An answer, not a dashboard
 - A tool for developers who ship
-- Calm clarity in a noisy system
+- The starting point of every work session
+- The interface between you and your agents
 
 **What prq is NOT:**
 - Enthusiastic
 - Enterprise
 - Feature-rich
 - Trying to impress you
+- Trying to replace your tools
 
 ### Promise
 
-You will never miss a PR that needs your review again.
+You will never lose track of what needs your attention again.
 
-One command tells you what needs your attention, why it needs it, and lets you act on it — without leaving the terminal.
+One command tells you what needs you — across PRs, issues, and tickets — categorized by why, actionable from where you already are.
 
-**Base message:** Code review is the bottleneck. prq removes it.
+**Base message:** Developers shouldn't need four platforms to know what to do next. prq is one command.
 
-**Synthesizing phrase:** prq exists so code review stops being the thing that slows everyone down.
+**Synthesizing phrase:** prq exists so developers can stop context-switching and start shipping.
 
 ### Guardrails
 
@@ -101,8 +110,9 @@ One command tells you what needs your attention, why it needs it, and lets you a
 **What the brand cannot be:**
 - A platform that tries to do everything
 - Marketing-speak dressed as a developer tool
-- Urgency theater ("Don't miss critical reviews!")
-- Enterprise positioning ("Scale your review process across organizations")
+- Urgency theater ("Don't miss critical work!")
+- Enterprise positioning ("Scale your workflow across organizations")
+- A replacement for the tools it integrates with
 - Cute or playful
 
 **Litmus test:** If it sounds like a vendor pitch, it's wrong.
@@ -113,49 +123,58 @@ One command tells you what needs your attention, why it needs it, and lets you a
 
 ### Identity
 
-We built prq because we got tired of the same ritual every morning. Open GitHub. Scroll through notifications. Click into a PR to figure out if it actually needs you. Copy the URL. Paste it somewhere useful. Repeat twelve times. Lose twenty minutes you'll never get back.
+We built prq because we got tired of the same ritual every morning. Open GitHub. Scroll notifications. Open Linear. Check what's assigned. Check Slack. Check email. Twenty minutes of context-switching before you write a line of code.
 
-We're not a platform. We're not a dashboard. We're not building the future of code review. We're a command you run in your terminal that tells you what needs your attention right now. That's it.
+We're not a platform. We're not building the future of project management. We're a command you run in your terminal that tells you what needs your attention right now — across every system that generates work for you. That's it.
 
-We speak developer because we are developers. We don't explain what a PR is. We don't sell you on the value of code review. We assume you're already doing the work — we just make the overhead disappear.
+We think the terminal is the developer's home. Not the browser. Not Slack. Not a dashboard. Developers are writing code, reviewing code, and dispatching agents from the command line. The tools that track their work should live there too.
 
-**Essence:** One command, clear signal.
+We speak developer because we are developers. We don't explain what a PR is. We don't sell you on the value of code review. We don't pitch you on task management. We assume you're already drowning in notifications across four platforms — we just give you one place to see what matters.
+
+**Essence:** One command. Everything that needs you.
 
 ### Tagline & Slogans
 
-**Primary tagline:** One command. Zero noise.
+**Primary tagline:** What needs you, right now.
 *Use on: homepage hero, social headers, npm description*
 
 **Alternatives:**
-- Your review queue, at a glance.
-- What needs your attention, right now.
+- One command. Zero noise.
+- Your work, one command away.
+- The developer's home screen.
 
 **Slogans:**
-- Code review, minus the noise.
-- Never miss a review again.
-- `git status` for code reviews.
-- The fastest way to know what needs you.
+- `git status` for your entire workload.
+- Stop context-switching. Start shipping.
+- Four platforms. One command.
 - See your queue. Act on it. Move on.
+- The fastest way to know what needs you.
+- You don't need another dashboard. You need an answer.
+- One command between you and your agents.
 
 ### Manifesto
 
 You check your email. Twelve GitHub notifications. Three are reviews. One is a bot. The rest are threads you were tagged in a week ago.
 
-You open the PR tab. Filter by "awaiting your review." Two results. But you know there are more — Alice pushed fixes to that PR you reviewed on Monday. She just forgot to re-request.
+You open Linear. Four tickets assigned to you. One has a comment from yesterday you missed. Another has been "in progress" for a week — you forgot to update it when the PR merged.
 
-So you scroll. You click. You cross-reference. You build a mental model of what actually needs you.
+You check Slack. Someone asked about your PR in a thread you didn't see. A deploy failed and nobody told you directly.
+
+Four platforms. Four inboxes. Four ideas of what's urgent. And you haven't written a line of code yet.
 
 This is broken.
 
-Your review queue should be one command away. Not buried in a web UI. Not drowned in email. Not dependent on someone else remembering to click a button.
+Your workload should be one command away. Not scattered across tabs. Not buried in email. Not dependent on someone else's notification system deciding what matters.
 
-The tools that try to fix this either want you to adopt an entirely new workflow or give you a prettier way to look at the same mess. More dashboards. More filters. More configuration.
+The tools that try to fix this either want you to adopt an entirely new workflow, give you a prettier way to look at the same mess, or build another platform on top of the platforms you already have.
 
-We went the other way. One command. Four categories. Here's what needs you, and why.
+We went the other way. One command. Here's what needs you, and why. Act on it or move on.
 
-Needs re-review — because new commits landed after your feedback. Requested — because someone asked and you haven't looked yet. Stale — because nothing moved and someone should care. Your PRs waiting — because you wrote code too and it deserves attention.
+PRs waiting on your review — because new commits landed after your feedback. Issues assigned to you — because they're open and stale. Tickets in your sprint — because they haven't moved. Your PRs waiting — because you wrote code too and it deserves attention.
 
-That's the whole product. Not a platform. Not a workflow. A clear answer to a simple question.
+That's the product. Not a platform. Not a workflow. Not a dashboard. An answer to the question every developer asks every morning: what should I do next?
+
+And when you know, you can do it — or tell an agent to do it — without leaving the terminal.
 
 `prq` — and you know exactly where you stand.
 
@@ -163,15 +182,19 @@ That's the whole product. Not a platform. Not a workflow. A clear answer to a si
 
 **Clarity**
 - prq doesn't show you everything. It shows you what matters.
-- Four categories. One command. No noise.
+- Categorized by action needed, not just existence.
+
+**Unity**
+- GitHub PRs. GitHub issues. Linear tickets. One command.
+- Stop opening four platforms to understand your workload.
 
 **Speed**
 - Instant answer. No login, no setup wizard, no onboarding flow.
-- Works the moment `gh` is authenticated.
+- Works the moment your tools are authenticated.
 
-**Precision**
-- Categorized by action needed, not just existence.
-- Knows the difference between "requested" and "needs re-review."
+**Dispatch**
+- See it. Act on it. Send it to an agent. Move on.
+- prq is the attention layer. Claude Code is the execution layer.
 
 **Composability**
 - JSON output. Custom actions. Template variables.
@@ -183,34 +206,36 @@ That's the whole product. Not a platform. Not a workflow. A clear answer to a si
 
 ### Phrases
 
-- "One command. Zero noise."
-- "`git status` for code reviews."
+- "What needs you, right now."
+- "`git status` for your entire workload."
 - "A dashboard shows you everything. prq tells you what matters."
 - "Your queue, not your notifications."
-- "We don't replace GitHub. We make it legible."
+- "Four platforms. One command."
 - "Run it. Read it. Get back to work."
-- "Four categories. That's the whole product."
-- "More code. More PRs. Same you. That's why prq exists."
-- "Every tool talks to the PR author. prq talks to the reviewer."
+- "We don't replace your tools. We make them legible."
+- "The terminal is home. prq is the front door."
+- "More code. More PRs. More tickets. Same you. That's why prq exists."
+- "See it. Dispatch it. Ship it."
+- "One command between you and what needs you."
 
 ### Social Bios
 
-**GitHub:** PR Queue — CLI to see what code reviews need your attention.
+**GitHub:** Developer attention CLI — see what needs you across GitHub and Linear. One command.
 
-**npm:** See what code reviews need your attention. One command. No dashboard. No setup.
+**npm:** See what needs your attention — PRs, issues, tickets — from one command. No dashboard. No setup.
 
-**X/Twitter:** prq — your review queue, one command away. `npm i -g prq-cli`
+**X/Twitter:** prq — what needs you, right now. PRs. Issues. Tickets. One command. `npm i -g prq-cli`
 
-**LinkedIn:** prq is a CLI tool that tells developers exactly what code reviews need their attention. Four categories — needs re-review, requested, stale, your PRs waiting — one command, zero setup. Open source. prq.sh
+**LinkedIn:** prq is a developer CLI that shows you what needs your attention — across GitHub PRs, issues, and Linear tickets. Categorized by why, actionable from the terminal. One command. Zero noise. Open source. prq.sh
 
-**Website (prq.sh):** The fastest way to see what code reviews need your attention. One command. Four categories. Zero noise.
+**Website (prq.sh):** The fastest way to see what needs your attention. PRs. Issues. Tickets. One command. Zero noise.
 
 ### Tonal Rules
 
 1. Speak in short, declarative sentences. If a sentence has a comma, consider splitting it.
-2. Developer-to-developer. Never explain what a PR is or why code review matters.
+2. Developer-to-developer. Never explain what a PR is, what Linear is, or why code review matters.
 3. Calm authority. No exclamation marks. No urgency theater. The tool speaks for itself.
-4. Concrete over abstract. Say "four categories" not "intelligent categorization." Say "one command" not "streamlined workflow."
+4. Concrete over abstract. Say "four platforms" not "fragmented workflow." Say "one command" not "unified interface."
 5. Understated over enthusiastic. We'd rather be dry than excited.
 6. Show the terminal output. A screenshot of `prq` running is worth more than any copy.
 7. Lead with what it does, not what it is. "See what needs your attention" not "prq is a developer tool that..."
@@ -219,24 +244,27 @@ That's the whole product. Not a platform. Not a workflow. A clear answer to a si
 10. When in doubt, write less.
 
 **Identity boundaries:**
-- We are not a platform trying to replace GitHub.
-- We are not consultants who leave a dashboard behind.
-- We are not building "the future of code review."
+- We are not a platform trying to replace GitHub or Linear.
+- We are not a coding agent trying to replace Claude Code or Codex.
+- We are not building "the future of project management."
 - We are not an enterprise tool that needs a sales call.
 - We are not a notification client with better filters.
+- We are not a dashboard with more widgets.
 
 **We Say / We Never Say:**
 
 | We Say | We Never Say |
 |---|---|
-| "See what needs your attention" | "Supercharge your review workflow" |
+| "See what needs your attention" | "Supercharge your developer workflow" |
 | "One command" | "Seamless integration" |
-| "PRs waiting on you" | "Streamline your development pipeline" |
+| "PRs, issues, tickets" | "Unified development pipeline" |
 | "No setup needed" | "Get started in minutes" |
 | "Terminal-first" | "Beautiful dashboard" |
 | "Open source" | "Enterprise-grade solution" |
-| "Four categories" | "Intelligent categorization engine" |
+| "Dispatch to an agent" | "AI-powered automation" |
 | "Run `prq`" | "Unlock your team's velocity" |
+| "Four platforms. One command." | "Centralized developer experience" |
+| "What needs you" | "Actionable insights" |
 
 ---
 
@@ -260,7 +288,8 @@ That's the whole product. Not a platform. Not a workflow. A clear answer to a si
 **Semantic colors:**
 - **Success:** `#4ADE80` (green) — requested reviews, install commands, positive states
 - **Warning:** `#FACC15` (yellow) — needs re-review, attention states
-- **Danger:** `#FB7185` (pink-red) — stale PRs, alert states
+- **Danger:** `#FB7185` (pink-red) — stale items, alert states
+- **Info:** `#60A5FA` (blue) — issues, Linear tickets, informational states
 
 **Avoid:** GitHub blue (`#58A6FF`), bright/saturated backgrounds, gradients, any color used decoratively rather than semantically.
 
@@ -268,7 +297,7 @@ That's the whole product. Not a platform. Not a workflow. A clear answer to a si
 
 - **Display:** JetBrains Mono 800 — hero headlines, logo, `prq.` logotype
 - **Heading:** JetBrains Mono 600 — section headings, feature titles
-- **Body:** Inter 400/500 — paragraphs, descriptions, long-form text
+- **Body:** JetBrains Mono 400 — paragraphs, descriptions, long-form text
 - **Code:** JetBrains Mono 400 — CLI examples, install commands, terminal output, inline code
 - **Caption:** JetBrains Mono 400, uppercase, letter-spacing 0.1em — section labels, metadata
 - **Scale:** 11 / 13 / 15 / 20 / 32 / 72
@@ -283,7 +312,7 @@ That's the whole product. Not a platform. Not a workflow. A clear answer to a si
 
 **Design keywords:** Typographic. Monospace. Dark. Minimal. Precise. Terminal-native.
 
-**Reference brands:** Resend (developer-first clarity, dark aesthetic), Linear (opinionated minimalism, confident typography).
+**Reference brands:** Raycast (started focused, became the interface layer), Linear (opinionated minimalism, confident typography), Arc (reimagined a familiar tool into a workspace), Resend (developer-first clarity, dark aesthetic).
 
 **Logo:**
 - **Logotype:** `prq.` in JetBrains Mono 800, lowercase
@@ -297,7 +326,7 @@ That's the whole product. Not a platform. Not a workflow. A clear answer to a si
 - Centered, typographic layout with generous whitespace
 - Sections separated by thin horizontal rules (`1px solid #1E1E24`)
 - Purple accent used sparingly — the dot, links, active states
-- Category colors (green/yellow/red) only for semantic meaning
+- Category colors (green/yellow/red/blue) only for semantic meaning
 - Version badge as pill: `border: 1px solid #1E1E24; border-radius: 100px; color: accent`
 - Buttons: primary is white text on dark, ghost is muted text with hover to white
 

@@ -2,9 +2,11 @@
 
 [![npm version](https://img.shields.io/npm/v/prq-cli.svg)](https://www.npmjs.com/package/prq-cli)
 
-PR Queue — one command, zero noise.
+What needs you, right now.
 
-Four categories. What needs re-review, what's requested, what's stale, what's waiting on others. Mark PRs as in progress to track what you've started. Nudge stale PRs without double-pinging. Run `prq`, see your queue, act on it, move on.
+`prq` shows you what needs your attention — PRs, issues, tickets — categorized by why, not just that they exist. One command. Zero noise.
+
+Starting with code reviews: what needs re-review, what's requested, what's stale, what's waiting on others. Mark PRs as in progress. Nudge stale PRs without double-pinging. Run `prq`, see your queue, act on it, move on. Issues and tickets are next.
 
 ## Install
 
