@@ -40,6 +40,9 @@ body {
 	max-width: 560px;
 	margin: 0 auto;
 	padding: 0 32px;
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
 }
 
 hr {
@@ -85,7 +88,11 @@ hr {
 
 /* ── Story ── */
 .story {
-	padding: 48px 0 80px;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	padding: 48px 0;
 }
 
 .story p {
@@ -110,12 +117,11 @@ hr {
 	color: var(--faint);
 }
 
-/* ── Terminal ── */
-.terminal-section {
-	padding: 80px 0;
+/* ── Install ── */
+.install-section {
+	padding: 0 0 32px;
 }
 
-/* ── Install ── */
 .install {
 	display: flex;
 	align-items: center;
@@ -161,8 +167,7 @@ hr {
 
 /* ── Footer ── */
 footer {
-	padding: 64px 0 80px;
-	border-top: 1px solid var(--border);
+	padding: 32px 0;
 	font-size: 13px;
 	color: var(--dim);
 	display: flex;
