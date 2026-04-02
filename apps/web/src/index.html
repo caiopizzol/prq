@@ -27,13 +27,14 @@ for (const [tag, attrs] of favicons) {
 
 <div class="page">
 
+	<main>
 	<a class="badge" href="https://github.com/caiopizzol/prq/releases">
 		<span class="badge-version">v0.21.0</span>
 		<span class="badge-arrow">&rarr;</span>
 	</a>
 
 	<section class="story">
-		<p><span class="fade">Every morning, same thing.</span></p>
+		<p aria-hidden="true"><span class="fade">Every morning, same thing.</span></p>
 		<p>Open GitHub. Twelve notifications. One is a bot. One is a thread from a week ago. You filter by "awaiting your review." Two results. But alice pushed fixes to that PR you reviewed on Monday. <em>She just forgot to re-request.</em></p>
 		<p>Open Linear. Four tickets assigned. One has a comment you missed. Another has been "in progress" for a week — you forgot to update it when the PR merged.</p>
 		<p>Check Slack. Someone asked about your PR in a thread you didn't see.</p>
@@ -46,6 +47,7 @@ for (const [tag, attrs] of favicons) {
 			<button type="button" class="copy-btn">copy</button>
 		</div>
 	</section>
+	</main>
 
 	<footer>
 		<div>prq.sh · open source · MIT</div>
