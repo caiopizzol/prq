@@ -78,16 +78,12 @@ hr {
 }
 
 .badge-arrow {
-	display: inline-block;
 	color: var(--faint);
-	transition:
-		transform 0.2s ease,
-		color 0.2s;
+	transition: color 0.2s;
 }
 
 .badge:hover .badge-arrow {
 	color: var(--accent);
-	transform: translateX(3px);
 }
 
 /* ── Story ── */
