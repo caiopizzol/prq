@@ -8,6 +8,7 @@ const configSchema = z.object({
 	showAllOpen: z.boolean().default(false),
 	user: z.string().optional(),
 	actions: z.record(z.string()).default({}),
+	defaultFilter: z.enum(["all", "pr", "issue"]).default("all"),
 });
 
 export type Config = z.infer<typeof configSchema>;

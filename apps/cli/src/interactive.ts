@@ -384,7 +384,7 @@ export async function interactiveMode(
 		message: "",
 		actionMenu: null,
 		filterMenu: false,
-		typeFilter: "all",
+		typeFilter: config.defaultFilter ?? "all",
 		viewStart: 0,
 		searchMode: false,
 		searchBuffer: "",
