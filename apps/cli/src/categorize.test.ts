@@ -168,11 +168,13 @@ describe("categorize", () => {
 		expect(result[0].detail).toContain("@bob");
 	});
 
-	test("does NOT flag authored PRs with no requested reviewers", () => {
+	test("flags authored PRs with no requested reviewers as waiting-on-others", () => {
 		const authored = [makePR({ number: 60, author: "me" })];
 
 		const result = categorize([], [], authored, 3, []);
-		expect(result).toHaveLength(0);
+		expect(result).toHaveLength(1);
+		expect(result[0].category).toBe("waiting-on-others");
+		expect(result[0].detail).toContain("No reviewers assigned");
 	});
 
 	test("deduplicates PRs across categories", () => {

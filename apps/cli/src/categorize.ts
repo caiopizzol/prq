@@ -108,27 +108,49 @@ export function categorize(
 		}
 	}
 
+	// 3b. Reviewed PRs not stale, no new commits, not requested → waiting on author
+	for (const pr of reviewedPRs) {
+		const k = key(pr);
+		if (seen.has(k)) continue;
+		if (requestedKeys.has(k)) continue;
+
+		seen.add(k);
+		results.push({
+			type: "pr",
+			category: "waiting-on-others",
+			repo: pr.repo,
+			number: pr.number,
+			title: pr.title,
+			author: pr.author,
+			url: pr.url,
+			isDraft: pr.isDraft,
+			updatedAt: pr.updatedAt,
+			detail: `Reviewed, waiting on @${pr.author}`,
+		});
+	}
+
 	// 4. Your PRs waiting on others
 	for (const pr of authoredPRs) {
 		const k = key(pr);
 		if (seen.has(k)) continue;
+		seen.add(k);
 
-		if (pr.requestedReviewers.length > 0) {
-			seen.add(k);
-			const reviewers = pr.requestedReviewers.map((r) => `@${r}`).join(", ");
-			results.push({
-				type: "pr",
-				category: "waiting-on-others",
-				repo: pr.repo,
-				number: pr.number,
-				title: pr.title,
-				author: pr.author,
-				url: pr.url,
-				isDraft: pr.isDraft,
-				updatedAt: pr.updatedAt,
-				detail: `Waiting on review from ${reviewers}`,
-			});
-		}
+		const detail =
+			pr.requestedReviewers.length > 0
+				? `Waiting on review from ${pr.requestedReviewers.map((r) => `@${r}`).join(", ")}`
+				: `No reviewers assigned`;
+		results.push({
+			type: "pr",
+			category: "waiting-on-others",
+			repo: pr.repo,
+			number: pr.number,
+			title: pr.title,
+			author: pr.author,
+			url: pr.url,
+			isDraft: pr.isDraft,
+			updatedAt: pr.updatedAt,
+			detail,
+		});
 	}
 
 	// 5. All other open PRs (when showAllOpen is enabled)
