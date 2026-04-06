@@ -3,7 +3,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "bun --hot src/server.ts",
-		"build": "cp -r public dist && bun build src/index.html --outdir dist",
+		"build": "bun src/build-changelog.ts && rm -rf dist && cp -r public dist && bun build src/index.html src/changelog.html --outdir dist",
 		"typecheck": "tsc --noEmit"
 	}
 }

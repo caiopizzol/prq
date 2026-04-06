@@ -1,8 +1,10 @@
 node_modules/
 dist/
+apps/web/src/changelog.html
 *.tsbuildinfo
 .prqrc.json
 .DS_Store
 .wrangler/
 dev/
 .env
+.mcp.json

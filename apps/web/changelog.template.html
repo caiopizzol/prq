@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Changelog — prq.</title>
+<meta name="description" content="What's new in prq — release notes, improvements, and fixes.">
+<link rel="canonical" href="https://prq.sh/changelog">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://prq.sh/changelog">
+<meta property="og:title" content="Changelog — prq.">
+<meta property="og:description" content="What's new in prq — release notes, improvements, and fixes.">
+<meta property="og:image" content="https://prq.sh/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Changelog — prq.">
+<meta name="twitter:description" content="What's new in prq — release notes, improvements, and fixes.">
+<meta name="twitter:image" content="https://prq.sh/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;800&display=swap">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;800&display=swap" rel="stylesheet">
+<script>
+const favicons = [
+  ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }],
+  ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' }],
+  ['link', { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/favicon-16x16.png' }],
+  ['link', { rel: 'manifest', href: '/site.webmanifest' }],
+];
+for (const [tag, attrs] of favicons) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  document.head.appendChild(el);
+}
+</script>
+<link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./changelog.css">
+</head>
+<body>
+
+<div class="page changelog-page">
+  <header>
+    <a href="/" class="back">&larr; prq.</a>
+  </header>
+
+  <main>
+    <h1>Changelog</h1>
+{{RELEASES}}
+  </main>
+
+  <footer>
+    <div>prq.sh &middot; open source &middot; MIT</div>
+    <div class="footer-links">
+      <a href="https://github.com/caiopizzol/prq">github</a>
+      <a href="https://www.npmjs.com/package/prq-cli">npm</a>
+    </div>
+  </footer>
+</div>
+
+</body>
+</html>

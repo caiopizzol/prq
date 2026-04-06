@@ -3,10 +3,15 @@ import index from "./index.html";
 
 const publicDir = join(import.meta.dir, "../public");
 
+// Build changelog from GitHub releases before serving
+await import("./build-changelog.ts");
+const changelog = (await import("./changelog.html")).default;
+
 Bun.serve({
 	port: 3005,
 	routes: {
 		"/": index,
+		"/changelog": changelog,
 	},
 	async fetch(req) {
 		const url = new URL(req.url);
