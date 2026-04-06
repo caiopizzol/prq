@@ -1,0 +1,35 @@
+# prq
+
+> Developer attention CLI — see what needs you across GitHub and Linear. One command.
+
+prq consolidates PRs, issues, and tickets from GitHub and Linear into a single prioritized queue. Instead of checking GitHub notifications, Linear, and Slack separately, developers run one command to see what needs their attention — categorized by action type.
+
+## Install
+
+npm install -g prq-cli
+
+Requires GitHub CLI (gh) to be authenticated.
+
+## Categories
+
+- Needs Re-review: new commits pushed after your review
+- Requested: you're a requested reviewer
+- Stale: no activity for N days
+- Your PRs Waiting: waiting on someone else
+- In Progress: PRs you've marked as started
+
+## Key Features
+
+- Interactive TUI with keyboard navigation
+- Custom actions via .prqrc.json (integrates with Claude Code, Codex, gh CLI)
+- JSON output for scripting and agent workflows
+- Nudge stale PRs without double-pinging
+- Claude Code skill (/prq)
+- Zero config — works the moment your tools are authenticated
+
+## Links
+
+- Website: https://prq.sh
+- GitHub: https://github.com/caiopizzol/prq
+- npm: https://www.npmjs.com/package/prq-cli
+- Full documentation: https://prq.sh/llms-full.txt
