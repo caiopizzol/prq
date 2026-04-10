@@ -39,6 +39,9 @@ Options:
   prq                                        # interactive mode (default)
   prq status --repos org/repo1 org/repo2     # specific repos
   prq status --stale-days 7                  # custom threshold
+  prq status --filter type:pr                # only PRs
+  prq status --filter label:priority         # only items with label
+  prq status --filter '!draft:true'          # exclude drafts
   prq status --json                          # machine-readable output
   prq --no-interactive                       # plain text output
 
@@ -48,13 +51,16 @@ Interactive mode is the default when running in a terminal. Keyboard shortcuts:
 
   Up/Down    Navigate between PRs
   Left/Right Page up / page down
-  r          Review — open files changed
   o          Open — open PR in browser
   n          Nudge — post a comment (won't double-ping)
   s          Start/Stop — mark as in progress
   c          Copy URL to clipboard
+  f          Filter — filter by label, author, type, category, repo
   a          Actions — open menu with all actions
+  /          Search by number, title, or author
   q          Quit
+
+Press 'f' to open the filter menu. Pick a dimension (label, author, type, etc.), then toggle values. Active filters show a '*' indicator. Press '0' to clear.
 
 Press 'a' to open the actions menu with all actions (built-in and custom). Press 1-9 to run an action, or q to dismiss.
 
@@ -80,6 +86,25 @@ Install the /prq skill for Claude Code:
 
   prq skill            # install in current project
   prq skill --global   # install globally
+
+## Filtering
+
+Filter your queue from the CLI or set defaults in config. Syntax mirrors GitHub's search qualifiers.
+
+  --filter label:priority          # include by label
+  --filter '!label:wontfix'        # exclude (prefix with !)
+  --filter label:priority,urgent   # OR within a filter
+  --filter type:pr --filter author:alice  # AND across filters
+
+Filter keys: label, author, type, category, repo, draft
+
+Set default filters in config:
+
+{
+  "filters": ["!draft:true", "!label:wontfix"]
+}
+
+CLI --filter flags override config defaults entirely.
 
 ## Custom Actions
 
@@ -151,6 +176,7 @@ Full example:
 {
   "repos": ["org/repo1", "org/repo2"],
   "staleDays": 5,
+  "filters": ["!draft:true", "!label:wontfix"],
   "actions": {
     "review": "claude '/review {url}'",
     "checkout": "gh pr checkout {number} --repo {owner}/{repo}",

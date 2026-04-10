@@ -21,6 +21,8 @@ Requires GitHub CLI (gh) to be authenticated.
 ## Key Features
 
 - Interactive TUI with keyboard navigation
+- Generic filtering (--filter label:priority, !author:bot, type:pr)
+- Default filters in config for persistent preferences
 - Custom actions via .prqrc.json (integrates with Claude Code, Codex, gh CLI)
 - JSON output for scripting and agent workflows
 - Nudge stale PRs without double-pinging

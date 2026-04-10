@@ -6,7 +6,7 @@ What needs you, right now.
 
 `prq` shows you what needs your attention — PRs, issues, tickets — categorized by why, not just that they exist. One command. Zero noise.
 
-PRs and issues in one queue, categorized by action needed: needs response, requested, stale, waiting on others, mentioned. Mark items as in progress. Nudge stale work without double-pinging. Filter by type. Run `prq`, see your queue, act on it, move on.
+PRs and issues in one queue, categorized by action needed: needs response, requested, stale, waiting on others, mentioned. Mark items as in progress. Nudge stale work without double-pinging. Filter by label, author, type, category, or repo. Run `prq`, see your queue, act on it, move on.
 
 ## Install
 
@@ -39,6 +39,8 @@ Shows what needs your attention — PRs and issues in shared categories. Interac
 ```bash
 prq                                        # interactive mode (default)
 prq status --repos org/repo1 org/repo2     # specific repos
+prq status --filter type:pr                # only PRs
+prq status --filter '!draft:true'          # exclude drafts
 prq status --json                          # machine-readable
 prq --no-interactive                       # plain text output
 ```
@@ -47,11 +49,11 @@ prq --no-interactive                       # plain text output
 
 Navigate your queue with keyboard shortcuts:
 
-- **↑↓** navigate  **←→** page up/down  **/** search  **o** open  **n** nudge  **s** start/stop  **c** copy url  **t** filter  **a** actions  **q** quit
+- **↑↓** navigate  **←→** page up/down  **/** search  **o** open  **n** nudge  **s** start/stop  **c** copy url  **f** filter  **a** actions  **q** quit
 
 Press **/** to search — type a number, title, or author and the cursor jumps to the first match. **Enter** confirms, **Esc** cancels.
 
-Press **t** to filter by type — **a** all, **p** PRs only, **i** issues only.
+Press **f** to filter — pick a dimension (label, author, type, category, repo), then toggle values. Active filters show a `*` indicator. Press **0** to clear.
 
 Press **a** to open the actions menu — all actions (built-in and custom) are listed and accessible by number.
 
