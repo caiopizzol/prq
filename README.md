@@ -83,6 +83,7 @@ Actions are configurable shell command templates. Inline commands or scripts —
 ```json
 {
   "repos": ["org/repo"],
+  "filters": ["!draft:true", "!label:wontfix"],
   "actions": {
     "review": "claude '/review {url}'",
     "checkout": "gh pr checkout {number} --repo {owner}/{repo}",
