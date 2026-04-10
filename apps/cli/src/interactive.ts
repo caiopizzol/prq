@@ -441,11 +441,7 @@ export async function interactiveMode(
 			}
 
 			if (state.filterMenuStep !== null) {
-				if (key === "\x03") {
-					suspend();
-					resolve();
-					return;
-				}
+				let handled = true;
 
 				if (state.filterMenuStep === "key") {
 					if (key === "q" || key === "\x1B" || key === "f") {
@@ -465,6 +461,8 @@ export async function interactiveMode(
 							state.filterMenuKey = FILTER_KEY_NAMES[idx - 1];
 							state.filterMenuStep = "value";
 							state.message = "";
+						} else {
+							handled = false;
 						}
 					}
 				} else if (state.filterMenuStep === "value" && state.filterMenuKey) {
@@ -473,7 +471,6 @@ export async function interactiveMode(
 						state.filterMenuKey = null;
 						state.message = "";
 					} else if (key === "0") {
-						// Clear filters for this key
 						state.filterState = state.filterState.filter(
 							(c) => c.key !== state.filterMenuKey,
 						);
@@ -507,12 +504,17 @@ export async function interactiveMode(
 							state.selectedIndex = 0;
 							state.viewStart = 0;
 							state.message = "";
+						} else {
+							handled = false;
 						}
 					}
 				}
 
-				render(state);
-				return;
+				if (handled) {
+					render(state);
+					return;
+				}
+				// Unhandled keys (arrows, etc.) fall through to navigation
 			}
 
 			if (state.actionMenu) {
