@@ -114,8 +114,8 @@ describe("getAction", () => {
 			repos: [],
 			staleDays: 3,
 			showAllOpen: false,
+			filters: [],
 			actions: {},
-			defaultFilter: "all" as const,
 		};
 		expect(getAction("open", config)).toBe("open {url}");
 		expect(getAction("review", config)).toBe("open {url}/files");
@@ -126,8 +126,8 @@ describe("getAction", () => {
 			repos: [],
 			staleDays: 3,
 			showAllOpen: false,
+			filters: [],
 			actions: { review: "claude -p '/review {url}'" },
-			defaultFilter: "all" as const,
 		};
 		expect(getAction("review", config)).toBe("claude -p '/review {url}'");
 	});
@@ -137,8 +137,8 @@ describe("getAction", () => {
 			repos: [],
 			staleDays: 3,
 			showAllOpen: false,
+			filters: [],
 			actions: { checkout: "gh pr checkout {number}" },
-			defaultFilter: "all" as const,
 		};
 		expect(getAction("checkout", config)).toBe("gh pr checkout {number}");
 	});
@@ -148,8 +148,8 @@ describe("getAction", () => {
 			repos: [],
 			staleDays: 3,
 			showAllOpen: false,
+			filters: [],
 			actions: {},
-			defaultFilter: "all" as const,
 		};
 		expect(getAction("nonexistent", config)).toBeUndefined();
 	});
@@ -161,8 +161,8 @@ describe("listActions", () => {
 			repos: [],
 			staleDays: 3,
 			showAllOpen: false,
+			filters: [],
 			actions: { checkout: "gh pr checkout {number}" },
-			defaultFilter: "all" as const,
 		};
 		const all = listActions(config);
 		expect(all.open).toBe("open {url}");
@@ -175,8 +175,8 @@ describe("listActions", () => {
 			repos: [],
 			staleDays: 3,
 			showAllOpen: false,
+			filters: [],
 			actions: { open: "custom-open {url}" },
-			defaultFilter: "all" as const,
 		};
 		const all = listActions(config);
 		expect(all.open).toBe("custom-open {url}");

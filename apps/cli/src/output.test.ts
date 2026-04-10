@@ -20,6 +20,7 @@ function makeItem(overrides: Partial<CategorizedItem> = {}): CategorizedItem {
 		isDraft: false,
 		updatedAt: new Date().toISOString(),
 		detail: "Requested 1d ago",
+		labels: [],
 		...overrides,
 	};
 }

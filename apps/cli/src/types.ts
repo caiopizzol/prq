@@ -21,6 +21,7 @@ export interface CategorizedItem {
 	isDraft: boolean;
 	updatedAt: string;
 	detail: string;
+	labels: string[];
 }
 
 export interface StatusResult {

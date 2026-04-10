@@ -40,6 +40,10 @@ export function createCLI(): Command {
 		.option("--all", "Show all open PRs in configured repos")
 		.option("--json", "Output as JSON")
 		.option("--no-interactive", "Disable interactive mode")
+		.option(
+			"--filter <filters...>",
+			"Filter items (e.g., label:priority, !author:bot, type:pr)",
+		)
 		.action(async (opts) => {
 			const config = loadConfig({
 				repos: opts.repos,
@@ -47,7 +51,12 @@ export function createCLI(): Command {
 				showAllOpen: opts.all || undefined,
 			});
 
-			await statusCommand(config, opts.json ?? false, opts.interactive ?? true);
+			await statusCommand(
+				config,
+				opts.json ?? false,
+				opts.interactive ?? true,
+				opts.filter,
+			);
 		});
 
 	// Built-in action shortcuts

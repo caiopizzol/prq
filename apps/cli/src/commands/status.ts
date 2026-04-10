@@ -1,6 +1,7 @@
 import { sortByCategory } from "../categories.js";
 import { categorize, categorizeIssues } from "../categorize.js";
 import type { Config } from "../config.js";
+import { applyFilter, parseFilterFlags } from "../filter.js";
 import { getAuthenticatedUser } from "../github/client.js";
 import {
 	enrichAllIssuesWithComments,
@@ -17,13 +18,14 @@ import type { PRBasic } from "../github/types.js";
 import { interactiveMode } from "../interactive.js";
 import { formatStatus } from "../output.js";
 import { applyInProgress, applyNudged } from "../state.js";
-import type { StatusResult } from "../types.js";
+import type { CategorizedItem, StatusResult } from "../types.js";
 
-export async function statusCommand(
-	config: Config,
-	json: boolean,
-	interactive: boolean,
-): Promise<void> {
+export interface QueueResult {
+	user: string;
+	items: CategorizedItem[];
+}
+
+export async function fetchQueue(config: Config): Promise<QueueResult> {
 	const user = config.user ?? (await getAuthenticatedUser());
 
 	process.stderr.write(`Fetching PRs and issues for ${user}...\n`);
@@ -93,16 +95,31 @@ export async function statusCommand(
 		applyNudged(applyInProgress(allCategorized, reviewTimestamps)),
 	);
 
+	return { user, items };
+}
+
+export async function statusCommand(
+	config: Config,
+	json: boolean,
+	interactive: boolean,
+	filterFlags?: string[],
+): Promise<void> {
+	const { user, items } = await fetchQueue(config);
+
+	const filterSource = filterFlags ?? config.filters;
+	const filter = parseFilterFlags(filterSource);
+	const filtered = applyFilter(items, filter);
+
 	const result: StatusResult = {
 		user,
 		timestamp: new Date().toISOString(),
-		items,
+		items: filtered,
 	};
 
 	if (json) {
 		process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 	} else if (interactive && process.stdin.isTTY) {
-		await interactiveMode(result, allCategorized, config);
+		await interactiveMode(result, filtered, config);
 	} else {
 		process.stdout.write(formatStatus(result));
 	}

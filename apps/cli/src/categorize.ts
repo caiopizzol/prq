@@ -60,6 +60,7 @@ export function categorize(
 				isDraft: pr.isDraft,
 				updatedAt: pr.updatedAt,
 				detail: `New commits since your review ${timeAgo(pr.userLastReviewedAt)}`,
+				labels: pr.labels,
 			});
 		}
 	}
@@ -81,6 +82,7 @@ export function categorize(
 			isDraft: pr.isDraft,
 			updatedAt: pr.updatedAt,
 			detail: `Requested ${timeAgo(pr.updatedAt)}`,
+			labels: pr.labels,
 		});
 	}
 
@@ -104,6 +106,7 @@ export function categorize(
 				isDraft: pr.isDraft,
 				updatedAt: pr.updatedAt,
 				detail: `No activity for ${inactive} days`,
+				labels: pr.labels,
 			});
 		}
 	}
@@ -126,6 +129,7 @@ export function categorize(
 			isDraft: pr.isDraft,
 			updatedAt: pr.updatedAt,
 			detail: `Reviewed, waiting on @${pr.author}`,
+			labels: pr.labels,
 		});
 	}
 
@@ -150,6 +154,7 @@ export function categorize(
 			isDraft: pr.isDraft,
 			updatedAt: pr.updatedAt,
 			detail,
+			labels: pr.labels,
 		});
 	}
 
@@ -170,6 +175,7 @@ export function categorize(
 			isDraft: pr.isDraft,
 			updatedAt: pr.updatedAt,
 			detail: `Last commit ${timeAgo(pr.latestCommitAt)}`,
+			labels: pr.labels,
 		});
 	}
 
@@ -198,6 +204,7 @@ function makeIssueItem(
 		isDraft: false,
 		updatedAt: issue.updatedAt,
 		detail,
+		labels: issue.labels,
 	};
 }
 

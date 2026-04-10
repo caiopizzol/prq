@@ -165,6 +165,7 @@ async function findItemByNumber(
 				isDraft: false,
 				updatedAt: issue.updatedAt,
 				requestedReviewers: [],
+				labels: [],
 				itemType: "issue",
 			});
 		}

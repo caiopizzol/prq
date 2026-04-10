@@ -15,6 +15,7 @@ function buildRepoFilter(repos: string[]): string {
 function parsePR(item: Record<string, unknown>): PRBasic {
 	const user = item.user as Record<string, unknown>;
 	const [owner, repo] = (item.repository_url as string).split("/").slice(-2);
+	const rawLabels = (item.labels as Array<Record<string, unknown>>) ?? [];
 	return {
 		number: item.number as number,
 		title: item.title as string,
@@ -24,6 +25,7 @@ function parsePR(item: Record<string, unknown>): PRBasic {
 		isDraft: (item.draft as boolean) ?? false,
 		updatedAt: item.updated_at as string,
 		requestedReviewers: [],
+		labels: rawLabels.map((l) => l.name as string),
 	};
 }
 
@@ -31,6 +33,7 @@ function parseIssue(item: Record<string, unknown>): IssueBasic {
 	const user = item.user as Record<string, unknown>;
 	const [owner, repo] = (item.repository_url as string).split("/").slice(-2);
 	const assignees = (item.assignees as Array<Record<string, unknown>>) ?? [];
+	const rawLabels = (item.labels as Array<Record<string, unknown>>) ?? [];
 	return {
 		number: item.number as number,
 		title: item.title as string,
@@ -39,6 +42,7 @@ function parseIssue(item: Record<string, unknown>): IssueBasic {
 		url: item.html_url as string,
 		updatedAt: item.updated_at as string,
 		assignees: assignees.map((a) => a.login as string),
+		labels: rawLabels.map((l) => l.name as string),
 	};
 }
 

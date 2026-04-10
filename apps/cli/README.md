@@ -46,6 +46,9 @@ PRs you mark as started appear in a separate **▸ In Progress** group at the to
 prq                                        # interactive mode (default)
 prq status --repos org/repo1 org/repo2     # specific repos
 prq status --stale-days 7                  # custom threshold
+prq status --filter type:pr                # only PRs
+prq status --filter label:priority         # only items with label
+prq status --filter '!draft:true'          # exclude drafts
 prq status --json                          # machine-readable
 prq --no-interactive                       # plain text output
 ```
@@ -58,13 +61,16 @@ Interactive mode is the default when running in a terminal. Navigate your queue 
 |-----|--------|
 | ↑↓ | Navigate between PRs |
 | ←→ | Page up / page down |
-| r | Review — open files changed |
 | o | Open — open PR in browser |
 | n | Nudge — post a comment (won't double-ping) |
 | s | Start/Stop — mark as in progress |
 | c | Copy URL to clipboard |
+| f | Filter — filter by label, author, type, category, repo |
 | a | Actions — open menu with all actions |
+| / | Search by number, title, or author |
 | q | Quit |
+
+Press **f** to open the filter menu. Pick a dimension (label, author, type, etc.), then toggle values. Active filters show a `*` indicator in the footer. Press **0** to clear filters.
 
 Press **a** to open the actions menu, which lists all actions (built-in and custom from your config). Press **1-9** to run an action, or **q** to dismiss.
 
@@ -96,6 +102,50 @@ Install the `/prq` skill for Claude Code:
 prq skill            # install in current project
 prq skill --global   # install globally
 ```
+
+## Filtering
+
+Filter your queue from the CLI or set defaults in config. The syntax mirrors GitHub's search qualifiers.
+
+```bash
+# Include by label
+prq status --filter label:priority
+
+# Exclude (prefix with !)
+prq status --filter '!label:wontfix'
+
+# OR within a filter (comma-separated)
+prq status --filter label:priority,urgent
+
+# AND across filters (repeat --filter)
+prq status --filter type:pr --filter author:alice
+
+# Combine freely
+prq status --filter type:pr --filter '!draft:true' --filter label:priority
+```
+
+### Filter keys
+
+| Key | Matches | Example |
+|-----|---------|---------|
+| `label` | GitHub labels | `label:bug` |
+| `author` | PR/issue author | `author:alice` |
+| `type` | `pr` or `issue` | `type:pr` |
+| `category` | prq category | `category:stale` |
+| `repo` | Repository | `repo:org/my-repo` |
+| `draft` | Draft status | `draft:true` |
+
+### Default filters
+
+Set default filters in your config so you don't repeat them every time:
+
+```json
+{
+  "filters": ["!draft:true", "!label:wontfix"]
+}
+```
+
+CLI `--filter` flags override config defaults entirely (not merge). The interactive TUI starts with config filters active — clear them with **f** → **0**.
 
 ## Custom Actions
 
@@ -216,6 +266,7 @@ Full example:
 {
   "repos": ["org/repo1", "org/repo2"],
   "staleDays": 5,
+  "filters": ["!draft:true", "!label:wontfix"],
   "actions": {
     "review": "claude '/review {url}'",
     "checkout": "gh pr checkout {number} --repo {owner}/{repo}",
@@ -223,6 +274,15 @@ Full example:
   }
 }
 ```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `repos` | `string[]` | `[]` | Repos to watch (`owner/repo`). Empty = all. |
+| `staleDays` | `number` | `3` | Days of inactivity to mark as stale |
+| `showAllOpen` | `boolean` | `false` | Include all open PRs in results |
+| `user` | `string` | (auto) | GitHub username (defaults to authenticated user) |
+| `filters` | `string[]` | `[]` | Default filters (same syntax as `--filter`) |
+| `actions` | `object` | `{}` | Custom action templates |
 
 ## License
 

@@ -3,8 +3,14 @@ import { CATEGORY_CONFIG, CATEGORY_ORDER } from "./categories.js";
 import { typePrefix } from "./format.js";
 import type { CategorizedItem, ItemCategory, StatusResult } from "./types.js";
 
-function formatItem(item: CategorizedItem): string {
+export function formatLabels(labels: string[]): string {
+	if (labels.length === 0) return "";
+	return labels.map((l) => chalk.dim(` [${l}]`)).join("");
+}
+
+export function formatItem(item: CategorizedItem): string {
 	const draft = item.isDraft ? chalk.dim(" [draft]") : "";
+	const labels = formatLabels(item.labels);
 	const prefix = typePrefix(item);
 	const ref = chalk.cyan(`${item.repo}#${item.number}`);
 	const title =
@@ -13,7 +19,7 @@ function formatItem(item: CategorizedItem): string {
 	const author = chalk.dim(`@${item.author}`);
 
 	return [
-		`  ${prefix} ${ref}  ${title}${draft}`,
+		`  ${prefix} ${ref}  ${title}${draft}${labels}`,
 		`        ${chalk.dim("↳")} ${author} ${chalk.dim("·")} ${chalk.dim(item.detail)}`,
 	].join("\n");
 }

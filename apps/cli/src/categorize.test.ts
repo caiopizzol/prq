@@ -21,6 +21,7 @@ function makePR(overrides: Partial<PRBasic> = {}): PRBasic {
 		isDraft: false,
 		updatedAt: hoursAgo(1),
 		requestedReviewers: [],
+		labels: [],
 		...overrides,
 	};
 }
@@ -54,6 +55,7 @@ function makeIssue(
 		url: "https://github.com/org/repo/issues/100",
 		updatedAt: hoursAgo(1),
 		assignees: ["me"],
+		labels: [],
 		userLastCommentAt: null,
 		latestOtherCommentAt: null,
 		...overrides,

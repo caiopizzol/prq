@@ -8,25 +8,20 @@ import {
 } from "./actions.js";
 import { CATEGORY_CONFIG, sortByCategory } from "./categories.js";
 import type { Config } from "./config.js";
+import {
+	applyFilter,
+	collectFilterValues,
+	FILTER_KEY_NAMES,
+	type Filter,
+	parseFilterFlags,
+} from "./filter.js";
 import { typePrefix } from "./format.js";
 import type { ResolvedPR } from "./identifier.js";
+import { formatLabels } from "./output.js";
 import { applyInProgress, applyNudged, toggleInProgress } from "./state.js";
-import type {
-	CategorizedItem,
-	ItemCategory,
-	ItemType,
-	StatusResult,
-} from "./types.js";
+import type { CategorizedItem, ItemCategory, StatusResult } from "./types.js";
 
 const PAGE_SIZE = 10;
-
-type TypeFilter = "all" | ItemType;
-
-const FILTER_LABEL: Record<TypeFilter, string> = {
-	all: "all",
-	pr: "PRs",
-	issue: "issues",
-};
 
 function toResolvedPR(item: CategorizedItem): ResolvedPR {
 	const [owner, repo] = item.repo.split("/");
@@ -41,14 +36,17 @@ function toResolvedPR(item: CategorizedItem): ResolvedPR {
 	};
 }
 
+type FilterMenuStep = "key" | "value" | null;
+
 interface RenderState {
 	result: StatusResult;
 	sourceItems: CategorizedItem[];
 	selectedIndex: number;
 	message: string;
 	actionMenu: { name: string; template: string }[] | null;
-	filterMenu: boolean;
-	typeFilter: TypeFilter;
+	filterMenuStep: FilterMenuStep;
+	filterMenuKey: string | null;
+	filterState: Filter;
 	viewStart: number;
 	searchMode: boolean;
 	searchBuffer: string;
@@ -56,8 +54,8 @@ interface RenderState {
 }
 
 function filteredItems(state: RenderState): CategorizedItem[] {
-	if (state.typeFilter === "all") return state.result.items;
-	return state.result.items.filter((i) => i.type === state.typeFilter);
+	if (state.filterState.length === 0) return state.result.items;
+	return applyFilter(state.result.items, state.filterState);
 }
 
 /** Recompute categorized item list from source items and adjust selection to follow a target item. */
@@ -113,7 +111,7 @@ function countLines(
 }
 
 function render(state: RenderState) {
-	const { selectedIndex, message, actionMenu, filterMenu } = state;
+	const { selectedIndex, message, actionMenu } = state;
 	const items = filteredItems(state);
 	const termHeight = process.stdout.rows || 24;
 
@@ -189,6 +187,7 @@ function render(state: RenderState) {
 
 		const arrow = isSelected ? chalk.yellow("›") : " ";
 		const draft = item.isDraft ? chalk.dim(" [draft]") : "";
+		const labels = formatLabels(item.labels);
 		const title =
 			item.title.length > 50 ? `${item.title.slice(0, 47)}...` : item.title;
 		const prefix = typePrefix(item, isSelected);
@@ -199,12 +198,12 @@ function render(state: RenderState) {
 
 		if (isSelected) {
 			lines.push(
-				` ${arrow} ${prefix} ${chalk.white(`#${item.number}`)}  ${chalk.white(title)}${draft}`,
+				` ${arrow} ${prefix} ${chalk.white(`#${item.number}`)}  ${chalk.white(title)}${draft}${labels}`,
 			);
 			lines.push(`        ${chalk.dim("↳")} ${detail}`);
 		} else {
 			lines.push(
-				` ${arrow} ${prefix} ${chalk.dim(`#${item.number}`)}  ${chalk.dim(title)}${draft}`,
+				` ${arrow} ${prefix} ${chalk.dim(`#${item.number}`)}  ${chalk.dim(title)}${draft}${labels}`,
 			);
 			lines.push(`        ${chalk.dim("↳")} ${detail}`);
 		}
@@ -219,10 +218,36 @@ function render(state: RenderState) {
 	lines.push("");
 	if (state.searchMode) {
 		lines.push(` ${chalk.yellow("/")}${state.searchBuffer}${chalk.dim("▏")}`);
-	} else if (filterMenu) {
+	} else if (state.filterMenuStep === "key") {
+		const keyChoices = FILTER_KEY_NAMES.map(
+			(k, j) => `${chalk.white(String(j + 1))} ${k}`,
+		).join("  ");
 		lines.push(
-			` ${chalk.bold("Filter:")}  ${chalk.white("a")} all  ${chalk.white("p")} PRs  ${chalk.white("i")} issues  ${chalk.white("q")} back`,
+			` ${chalk.bold("Filter by:")}  ${keyChoices}  ${chalk.white("0")} clear  ${chalk.white("q")} back`,
 		);
+	} else if (state.filterMenuStep === "value" && state.filterMenuKey) {
+		const values = collectFilterValues(state.result.items, state.filterMenuKey);
+		if (values.length === 0) {
+			lines.push(
+				` ${chalk.bold(`${state.filterMenuKey}:`)}  ${chalk.dim("no values found")}  ${chalk.white("q")} back`,
+			);
+		} else {
+			const valueChoices = values
+				.slice(0, 9)
+				.map((v, j) => {
+					const active = state.filterState.some(
+						(c) =>
+							c.key === state.filterMenuKey &&
+							c.values.includes(v.toLowerCase()),
+					);
+					const marker = active ? chalk.yellow("*") : " ";
+					return `${marker}${chalk.white(String(j + 1))} ${v}`;
+				})
+				.join("  ");
+			lines.push(
+				` ${chalk.bold(`${state.filterMenuKey}:`)}  ${valueChoices}  ${chalk.white("0")} clear  ${chalk.white("q")} back`,
+			);
+		}
 	} else if (actionMenu) {
 		const item = items[selectedIndex];
 		lines.push(
@@ -231,9 +256,10 @@ function render(state: RenderState) {
 	} else {
 		const item = items[selectedIndex];
 		const sLabel = item?.category === "in-progress" ? "stop" : "start";
-		const filterLabel = FILTER_LABEL[state.typeFilter];
+		const hasFilters = state.filterState.length > 0;
+		const filterHint = hasFilters ? chalk.yellow("filter*") : "filter";
 		lines.push(
-			` ${chalk.dim("/")} search  ${chalk.dim("o")} open  ${chalk.dim("n")} nudge  ${chalk.dim("s")} ${sLabel}  ${chalk.dim("c")} copy  ${chalk.dim("t")} ${filterLabel}  ${chalk.dim("a")} actions  ${chalk.dim("q")} quit`,
+			` ${chalk.dim("/")} search  ${chalk.dim("o")} open  ${chalk.dim("n")} nudge  ${chalk.dim("s")} ${sLabel}  ${chalk.dim("c")} copy  ${chalk.dim("f")} ${filterHint}  ${chalk.dim("a")} actions  ${chalk.dim("q")} quit`,
 		);
 	}
 	if (items.length > viewEnd - state.viewStart) {
@@ -383,8 +409,9 @@ export async function interactiveMode(
 		selectedIndex: 0,
 		message: "",
 		actionMenu: null,
-		filterMenu: false,
-		typeFilter: config.defaultFilter ?? "all",
+		filterMenuStep: null,
+		filterMenuKey: null,
+		filterState: parseFilterFlags(config.filters),
 		viewStart: 0,
 		searchMode: false,
 		searchBuffer: "",
@@ -413,28 +440,77 @@ export async function interactiveMode(
 				return;
 			}
 
-			if (state.filterMenu) {
-				const applyFilter = (filter: TypeFilter) => {
-					state.typeFilter = filter;
-					state.filterMenu = false;
-					state.selectedIndex = 0;
-					state.viewStart = 0;
-					state.message = "";
-				};
-				if (key === "a") {
-					applyFilter("all");
-				} else if (key === "p") {
-					applyFilter("pr");
-				} else if (key === "i") {
-					applyFilter("issue");
-				} else if (key === "q" || key === "\x1B" || key === "t") {
-					state.filterMenu = false;
-					state.message = "";
-				} else if (key === "\x03") {
+			if (state.filterMenuStep !== null) {
+				if (key === "\x03") {
 					suspend();
 					resolve();
 					return;
 				}
+
+				if (state.filterMenuStep === "key") {
+					if (key === "q" || key === "\x1B" || key === "f") {
+						state.filterMenuStep = null;
+						state.filterMenuKey = null;
+						state.message = "";
+					} else if (key === "0") {
+						state.filterState = [];
+						state.filterMenuStep = null;
+						state.filterMenuKey = null;
+						state.selectedIndex = 0;
+						state.viewStart = 0;
+						state.message = "";
+					} else {
+						const idx = parseInt(key, 10);
+						if (idx >= 1 && idx <= FILTER_KEY_NAMES.length) {
+							state.filterMenuKey = FILTER_KEY_NAMES[idx - 1];
+							state.filterMenuStep = "value";
+							state.message = "";
+						}
+					}
+				} else if (state.filterMenuStep === "value" && state.filterMenuKey) {
+					if (key === "q" || key === "\x1B") {
+						state.filterMenuStep = "key";
+						state.filterMenuKey = null;
+						state.message = "";
+					} else if (key === "0") {
+						// Clear filters for this key
+						state.filterState = state.filterState.filter(
+							(c) => c.key !== state.filterMenuKey,
+						);
+						state.selectedIndex = 0;
+						state.viewStart = 0;
+						state.message = "";
+					} else {
+						const values = collectFilterValues(
+							state.result.items,
+							state.filterMenuKey,
+						);
+						const idx = parseInt(key, 10);
+						if (idx >= 1 && idx <= Math.min(9, values.length)) {
+							const value = values[idx - 1].toLowerCase();
+							const existingIdx = state.filterState.findIndex(
+								(c) =>
+									c.key === state.filterMenuKey &&
+									!c.exclude &&
+									c.values.length === 1 &&
+									c.values[0] === value,
+							);
+							if (existingIdx >= 0) {
+								state.filterState.splice(existingIdx, 1);
+							} else {
+								state.filterState.push({
+									key: state.filterMenuKey,
+									values: [value],
+									exclude: false,
+								});
+							}
+							state.selectedIndex = 0;
+							state.viewStart = 0;
+							state.message = "";
+						}
+					}
+				}
+
 				render(state);
 				return;
 			}
@@ -554,8 +630,9 @@ export async function interactiveMode(
 						: chalk.dim(`unmarked: ${item.repo}#${item.number}`);
 					break;
 				}
-				case "t": {
-					state.filterMenu = true;
+				case "f": {
+					state.filterMenuStep = "key";
+					state.filterMenuKey = null;
 					state.message = "";
 					break;
 				}

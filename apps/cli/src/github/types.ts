@@ -7,6 +7,7 @@ export interface PRBasic {
 	isDraft: boolean;
 	updatedAt: string;
 	requestedReviewers: string[];
+	labels: string[];
 }
 
 export interface PRWithCommit extends PRBasic {
@@ -27,6 +28,7 @@ export interface IssueBasic {
 	url: string;
 	updatedAt: string;
 	assignees: string[];
+	labels: string[];
 }
 
 export interface IssueWithComments extends IssueBasic {
