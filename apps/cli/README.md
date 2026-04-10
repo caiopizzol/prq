@@ -284,6 +284,27 @@ Full example:
 | `filters` | `string[]` | `[]` | Default filters (same syntax as `--filter`) |
 | `actions` | `object` | `{}` | Custom action templates |
 
+## Project Structure
+
+```
+prq/
+├── apps/
+│   ├── cli/     # CLI tool (published to npm as prq-cli)
+│   └── web/     # Landing page
+└── brand.md     # Brand strategy
+```
+
+## Development
+
+```bash
+bun install              # install all workspace deps
+bun run dev:cli          # run the CLI
+bun run dev:web          # run the landing page on :3005
+bun test                 # run tests
+bun run lint             # lint + formatting
+bun run typecheck        # type check all apps
+```
+
 ## License
 
 MIT
