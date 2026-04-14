@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { CATEGORY_CONFIG, CATEGORY_ORDER } from "./categories.js";
-import { typePrefix } from "./format.js";
+import { itemRef, typePrefix } from "./format.js";
 import type { CategorizedItem, ItemCategory, StatusResult } from "./types.js";
 
 export function formatLabels(labels: string[]): string {
@@ -12,7 +12,7 @@ export function formatItem(item: CategorizedItem): string {
 	const draft = item.isDraft ? chalk.dim(" [draft]") : "";
 	const labels = formatLabels(item.labels);
 	const prefix = typePrefix(item);
-	const ref = chalk.cyan(`${item.repo}#${item.number}`);
+	const ref = chalk.cyan(itemRef(item));
 	const title =
 		item.title.length > 60 ? `${item.title.slice(0, 57)}...` : item.title;
 

@@ -1,4 +1,5 @@
 export type ItemType = "pr" | "issue";
+export type ItemSource = "github" | "linear";
 
 export type ItemCategory =
 	| "in-progress"
@@ -12,6 +13,7 @@ export type ItemCategory =
 
 export interface CategorizedItem {
 	type: ItemType;
+	source: ItemSource;
 	category: ItemCategory;
 	repo: string;
 	number: number;

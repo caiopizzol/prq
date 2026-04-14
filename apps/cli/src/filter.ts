@@ -18,6 +18,7 @@ const FILTER_KEYS: Record<string, FilterKeyDef> = {
 	label: { extract: (item) => item.labels },
 	author: { extract: (item) => [item.author] },
 	type: { extract: (item) => [item.type] },
+	source: { extract: (item) => [item.source] },
 	category: { extract: (item) => [item.category] },
 	repo: { extract: (item) => [item.repo] },
 	draft: { extract: (item) => [String(item.isDraft)] },

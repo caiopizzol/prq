@@ -4,6 +4,7 @@ import type {
 	PRWithCommit,
 	PRWithReviews,
 } from "./github/types.js";
+import type { LinearIssue } from "./linear/types.js";
 import type { CategorizedItem } from "./types.js";
 
 export function timeAgo(dateStr: string): string {
@@ -51,6 +52,7 @@ export function categorize(
 			seen.add(k);
 			results.push({
 				type: "pr",
+				source: "github",
 				category: "needs-re-review",
 				repo: pr.repo,
 				number: pr.number,
@@ -73,6 +75,7 @@ export function categorize(
 
 		results.push({
 			type: "pr",
+			source: "github",
 			category: "requested",
 			repo: pr.repo,
 			number: pr.number,
@@ -97,6 +100,7 @@ export function categorize(
 			seen.add(k);
 			results.push({
 				type: "pr",
+				source: "github",
 				category: "stale",
 				repo: pr.repo,
 				number: pr.number,
@@ -120,6 +124,7 @@ export function categorize(
 		seen.add(k);
 		results.push({
 			type: "pr",
+			source: "github",
 			category: "waiting-on-others",
 			repo: pr.repo,
 			number: pr.number,
@@ -145,6 +150,7 @@ export function categorize(
 				: `No reviewers assigned`;
 		results.push({
 			type: "pr",
+			source: "github",
 			category: "waiting-on-others",
 			repo: pr.repo,
 			number: pr.number,
@@ -166,6 +172,7 @@ export function categorize(
 
 		results.push({
 			type: "pr",
+			source: "github",
 			category: "open",
 			repo: pr.repo,
 			number: pr.number,
@@ -195,6 +202,7 @@ function makeIssueItem(
 ): CategorizedItem {
 	return {
 		type: "issue",
+		source: "github",
 		category,
 		repo: issue.repo,
 		number: issue.number,
@@ -310,4 +318,23 @@ export function categorizeIssues(
 	}
 
 	return results;
+}
+
+export function categorizeLinearIssues(
+	issues: LinearIssue[],
+): CategorizedItem[] {
+	return issues.map((issue) => ({
+		type: "issue",
+		source: "linear",
+		category: issue.stateType === "started" ? "in-progress" : "requested",
+		repo: issue.teamKey,
+		number: issue.number,
+		title: issue.title,
+		author: issue.creator,
+		url: issue.url,
+		isDraft: false,
+		updatedAt: issue.updatedAt,
+		detail: `${issue.stateName} · updated ${timeAgo(issue.updatedAt)}`,
+		labels: issue.labels,
+	}));
 }

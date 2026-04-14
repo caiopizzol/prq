@@ -13,6 +13,7 @@ import type { CategorizedItem, StatusResult } from "./types.js";
 function makeItem(overrides: Partial<CategorizedItem> = {}): CategorizedItem {
 	return {
 		type: "pr",
+		source: "github",
 		category: "requested",
 		repo: "org/repo",
 		number: 1,

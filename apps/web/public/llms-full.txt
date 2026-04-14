@@ -10,6 +10,8 @@ npm install -g prq-cli
 
 Requires GitHub CLI (gh) to be authenticated.
 
+Optional: set LINEAR_API_KEY to also pull issues assigned to you in Linear (generate one at linear.app/settings/api). No config required — when the env var is set, Linear issues interleave with GitHub items in the same queue.
+
 ## Quick Start
 
 # See your review queue (interactive by default)
@@ -27,13 +29,15 @@ prq nudge 482
 
 ### prq status (default)
 
-Shows PRs needing your attention in five categories:
+Shows PRs and issues needing your attention in these categories:
 
 - Needs Re-review: new commits pushed after your review
-- Requested: you're a requested reviewer
+- Requested: you're a requested reviewer (PRs); newly assigned (GitHub/Linear issues)
 - Stale: no activity for N days (configurable via --stale-days)
 - Your PRs Waiting: waiting on someone else
-- In Progress: PRs you've marked as started
+- In Progress: PRs you've marked as started, or Linear issues in a 'started' state
+
+Linear issues are pulled when LINEAR_API_KEY is set. They interleave with GitHub items in the same buckets and use a team-prefixed identifier (e.g., ENG-123).
 
 Options:
   prq                                        # interactive mode (default)
@@ -96,7 +100,9 @@ Filter your queue from the CLI or set defaults in config. Syntax mirrors GitHub'
   --filter label:priority,urgent   # OR within a filter
   --filter type:pr --filter author:alice  # AND across filters
 
-Filter keys: label, author, type, category, repo, draft
+Filter keys: label, author, type, category, repo, draft, source
+
+The 'source' key matches 'github' or 'linear'. Use 'source:linear' to focus on Linear only, '!source:linear' to hide Linear items. The 'repo' key matches GitHub repos (org/name) and Linear team keys (e.g., ENG).
 
 Set default filters in config:
 

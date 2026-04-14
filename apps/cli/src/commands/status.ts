@@ -1,5 +1,9 @@
 import { sortByCategory } from "../categories.js";
-import { categorize, categorizeIssues } from "../categorize.js";
+import {
+	categorize,
+	categorizeIssues,
+	categorizeLinearIssues,
+} from "../categorize.js";
 import type { Config } from "../config.js";
 import { applyFilter, parseFilterFlags } from "../filter.js";
 import { getAuthenticatedUser } from "../github/client.js";
@@ -16,6 +20,9 @@ import {
 } from "../github/queries.js";
 import type { PRBasic } from "../github/types.js";
 import { interactiveMode } from "../interactive.js";
+import { isLinearEnabled } from "../linear/client.js";
+import { fetchAssignedLinearIssues } from "../linear/queries.js";
+import type { LinearIssue } from "../linear/types.js";
 import { formatStatus } from "../output.js";
 import { applyInProgress, applyNudged } from "../state.js";
 import type { CategorizedItem, StatusResult } from "../types.js";
@@ -30,6 +37,8 @@ export async function fetchQueue(config: Config): Promise<QueueResult> {
 
 	process.stderr.write(`Fetching PRs and issues for ${user}...\n`);
 
+	const linearEnabled = isLinearEnabled();
+
 	// Phase 1: Discovery (parallel search queries for PRs AND issues)
 	const [
 		reviewedRaw,
@@ -38,6 +47,7 @@ export async function fetchQueue(config: Config): Promise<QueueResult> {
 		allOpenPRs,
 		assignedIssuesRaw,
 		mentionedIssuesRaw,
+		linearIssuesRaw,
 	] = await Promise.all([
 		fetchReviewedPRs(user, config.repos),
 		fetchRequestedPRs(user, config.repos),
@@ -47,6 +57,12 @@ export async function fetchQueue(config: Config): Promise<QueueResult> {
 			: Promise.resolve([] as PRBasic[]),
 		fetchAssignedIssues(user, config.repos),
 		fetchMentionedIssues(user, config.repos),
+		linearEnabled
+			? fetchAssignedLinearIssues().catch((err) => {
+					process.stderr.write(`Linear fetch failed: ${err.message}\n`);
+					return [] as LinearIssue[];
+				})
+			: Promise.resolve([] as LinearIssue[]),
 	]);
 
 	const parts = [
@@ -58,6 +74,7 @@ export async function fetchQueue(config: Config): Promise<QueueResult> {
 	parts.push(`${assignedIssuesRaw.length} assigned issues`);
 	if (mentionedIssuesRaw.length > 0)
 		parts.push(`${mentionedIssuesRaw.length} mentioned issues`);
+	if (linearEnabled) parts.push(`${linearIssuesRaw.length} Linear issues`);
 	process.stderr.write(`Found ${parts.join(", ")}\n`);
 
 	// Phase 2: Enrich (parallel)
@@ -84,7 +101,12 @@ export async function fetchQueue(config: Config): Promise<QueueResult> {
 		mentionedIssues,
 		config.staleDays,
 	);
-	const allCategorized = [...categorizedPRs, ...categorizedIssues];
+	const categorizedLinear = categorizeLinearIssues(linearIssuesRaw);
+	const allCategorized = [
+		...categorizedPRs,
+		...categorizedIssues,
+		...categorizedLinear,
+	];
 
 	// Phase 4: Apply local state overlays
 	const reviewTimestamps = new Map<string, string>();

@@ -18,6 +18,7 @@ const STATE_PATH = path.join(STATE_DIR, "state.json");
 function makeItem(overrides: Partial<CategorizedItem> = {}): CategorizedItem {
 	return {
 		type: "pr",
+		source: "github",
 		category: "needs-re-review",
 		repo: "org/repo",
 		number: 1,

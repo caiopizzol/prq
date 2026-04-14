@@ -14,6 +14,8 @@ npm install -g prq-cli
 
 Requires [GitHub CLI](https://cli.github.com/) (`gh`) to be authenticated.
 
+Optional: set `LINEAR_API_KEY` to also pull issues assigned to you in Linear (generate one at [linear.app/settings/api](https://linear.app/settings/api)).
+
 ## Quick Start
 
 ```bash
@@ -132,8 +134,9 @@ prq status --filter type:pr --filter '!draft:true' --filter label:priority
 | `author` | PR/issue author | `author:alice` |
 | `type` | `pr` or `issue` | `type:pr` |
 | `category` | prq category | `category:stale` |
-| `repo` | Repository | `repo:org/my-repo` |
+| `repo` | Repository (or Linear team key) | `repo:org/my-repo`, `repo:ENG` |
 | `draft` | Draft status | `draft:true` |
+| `source` | `github` or `linear` | `source:linear`, `!source:linear` |
 
 ### Default filters
 
@@ -146,6 +149,15 @@ Set default filters in your config so you don't repeat them every time:
 ```
 
 CLI `--filter` flags override config defaults entirely (not merge). The interactive TUI starts with config filters active — clear them with **f** → **0**.
+
+## Linear
+
+Set `LINEAR_API_KEY` and `prq` will fetch issues assigned to you and interleave them with your GitHub queue. No config needed.
+
+- **What's pulled:** every Linear issue assigned to you, excluding states with type `completed` or `canceled`.
+- **How it's categorized:** issues in a `started` state land in **In Progress**; everything else goes into **Requested**. Custom Linear statuses still work — we map by the underlying state type (`triage`, `unstarted`, `started`, etc.), not the custom name.
+- **How it's displayed:** Linear items render with a `Linear` badge and team-prefixed identifier (e.g., `ENG-123`), interleaved with GitHub items in the same buckets.
+- **Filter to just Linear:** `prq --filter source:linear`. Or hide it entirely: `prq --filter '!source:linear'`.
 
 ## Custom Actions
 

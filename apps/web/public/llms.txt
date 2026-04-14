@@ -8,7 +8,7 @@ prq consolidates PRs, issues, and tickets from GitHub and Linear into a single p
 
 npm install -g prq-cli
 
-Requires GitHub CLI (gh) to be authenticated.
+Requires GitHub CLI (gh) to be authenticated. Optional: set LINEAR_API_KEY to also pull Linear issues assigned to you.
 
 ## Categories
 
@@ -21,7 +21,7 @@ Requires GitHub CLI (gh) to be authenticated.
 ## Key Features
 
 - Interactive TUI with keyboard navigation
-- Generic filtering (--filter label:priority, !author:bot, type:pr)
+- Generic filtering (--filter label:priority, !author:bot, type:pr, source:linear)
 - Default filters in config for persistent preferences
 - Custom actions via .prqrc.json (integrates with Claude Code, Codex, gh CLI)
 - JSON output for scripting and agent workflows
