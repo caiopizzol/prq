@@ -139,7 +139,10 @@ export async function statusCommand(
 	const filterSource = filterFlags ?? config.filters;
 	const rawFilter = parseFilterFlags(filterSource);
 
-	const { filter, dropped }: { filter: typeof rawFilter; dropped: FilterClause[] } =
+	const {
+		filter,
+		dropped,
+	}: { filter: typeof rawFilter; dropped: FilterClause[] } =
 		useConfigDefault && rawFilter.length > 0
 			? relaxFilter(items, rawFilter)
 			: { filter: rawFilter, dropped: [] };

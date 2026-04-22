@@ -163,9 +163,7 @@ export function relaxFilter(
 /** Format clauses as a human-readable comma-separated list, preserving the `!` exclude prefix. */
 export function formatClauses(clauses: FilterClause[]): string {
 	return clauses
-		.map(
-			(c) => `${c.exclude ? "!" : ""}${c.key}:${c.values.join(",")}`,
-		)
+		.map((c) => `${c.exclude ? "!" : ""}${c.key}:${c.values.join(",")}`)
 		.join(", ");
 }
 

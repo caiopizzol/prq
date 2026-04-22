@@ -394,7 +394,10 @@ export function handleFilterKey(
 						...state.filterState.slice(0, existingIdx),
 						...state.filterState.slice(existingIdx + 1),
 					]
-				: [...state.filterState, { key: menuKey, values: [value], exclude: false }];
+				: [
+						...state.filterState,
+						{ key: menuKey, values: [value], exclude: false },
+					];
 		closeMenu();
 		return true;
 	}

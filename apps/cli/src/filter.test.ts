@@ -68,11 +68,7 @@ describe("relaxFilter", () => {
 			makeItem({ type: "pr", labels: [], author: "alice" }),
 			makeItem({ type: "pr", labels: [], author: "carol" }),
 		];
-		const filter = parseFilterFlags([
-			"type:pr",
-			"label:future",
-			"author:bob",
-		]);
+		const filter = parseFilterFlags(["type:pr", "label:future", "author:bob"]);
 		const result = relaxFilter(items, filter);
 		expect(result.filter.map((c) => c.key)).toEqual(["type"]);
 		expect(result.dropped.map((c) => c.key)).toEqual(["label", "author"]);
