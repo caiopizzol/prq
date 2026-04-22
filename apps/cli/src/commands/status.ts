@@ -5,7 +5,13 @@ import {
 	categorizeLinearIssues,
 } from "../categorize.js";
 import type { Config } from "../config.js";
-import { applyFilter, parseFilterFlags } from "../filter.js";
+import {
+	applyFilter,
+	type FilterClause,
+	formatClauses,
+	parseFilterFlags,
+	relaxFilter,
+} from "../filter.js";
 import { getAuthenticatedUser } from "../github/client.js";
 import {
 	enrichAllIssuesWithComments,
@@ -128,21 +134,36 @@ export async function statusCommand(
 ): Promise<void> {
 	const { user, items } = await fetchQueue(config);
 
+	// Only auto-relax filters sourced from config; explicit --filter flags are honored as-is.
+	const useConfigDefault = filterFlags === undefined;
 	const filterSource = filterFlags ?? config.filters;
-	const filter = parseFilterFlags(filterSource);
-	const filtered = applyFilter(items, filter);
+	const rawFilter = parseFilterFlags(filterSource);
 
-	const result: StatusResult = {
-		user,
-		timestamp: new Date().toISOString(),
-		items: filtered,
-	};
+	const { filter, dropped }: { filter: typeof rawFilter; dropped: FilterClause[] } =
+		useConfigDefault && rawFilter.length > 0
+			? relaxFilter(items, rawFilter)
+			: { filter: rawFilter, dropped: [] };
+
+	const filtered = applyFilter(items, filter);
+	const timestamp = new Date().toISOString();
 
 	if (json) {
+		const result: StatusResult = { user, timestamp, items: filtered };
 		process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 	} else if (interactive && process.stdin.isTTY) {
-		await interactiveMode(result, filtered, config);
+		const result: StatusResult = { user, timestamp, items };
+		await interactiveMode(result, items, config, {
+			initial: filter,
+			config: rawFilter,
+			dropped,
+		});
 	} else {
+		if (dropped.length > 0) {
+			process.stderr.write(
+				`default filter relaxed: dropped ${formatClauses(dropped)}\n`,
+			);
+		}
+		const result: StatusResult = { user, timestamp, items: filtered };
 		process.stdout.write(formatStatus(result));
 	}
 }

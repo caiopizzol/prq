@@ -13,7 +13,9 @@ import {
 	collectFilterValues,
 	FILTER_KEY_NAMES,
 	type Filter,
-	parseFilterFlags,
+	type FilterClause,
+	formatClauses,
+	relaxFilter,
 } from "./filter.js";
 import { typePrefix } from "./format.js";
 import type { ResolvedPR } from "./identifier.js";
@@ -38,16 +40,30 @@ function toResolvedPR(item: CategorizedItem): ResolvedPR {
 
 type FilterMenuStep = "key" | "value" | null;
 
-interface RenderState {
-	result: StatusResult;
-	sourceItems: CategorizedItem[];
-	selectedIndex: number;
-	message: string;
-	actionMenu: { name: string; template: string }[] | null;
+export interface FilterOptions {
+	/** Filter applied on startup (relaxed from config if clauses dropped). */
+	initial: Filter;
+	/** Literal config filter, target for `r` reset (re-relaxed against current items). */
+	config: Filter;
+	/** Clauses dropped during startup relaxation, shown as a banner. */
+	dropped: FilterClause[];
+}
+
+export interface FilterMenuState {
 	filterMenuStep: FilterMenuStep;
 	filterMenuKey: string | null;
 	filterState: Filter;
+	configFilter: Filter;
+	selectedIndex: number;
 	viewStart: number;
+	message: string;
+}
+
+interface RenderState extends FilterMenuState {
+	result: StatusResult;
+	sourceItems: CategorizedItem[];
+	message: string;
+	actionMenu: { name: string; template: string }[] | null;
 	searchMode: boolean;
 	searchBuffer: string;
 	preSearchIndex: number;
@@ -222,8 +238,10 @@ function render(state: RenderState) {
 		const keyChoices = FILTER_KEY_NAMES.map(
 			(k, j) => `${chalk.white(String(j + 1))} ${k}`,
 		).join("  ");
+		const resetHint =
+			state.configFilter.length > 0 ? `  ${chalk.white("r")} reset` : "";
 		lines.push(
-			` ${chalk.bold("Filter by:")}  ${keyChoices}  ${chalk.white("0")} clear  ${chalk.white("q")} back`,
+			` ${chalk.bold("Filter by:")}  ${keyChoices}${resetHint}  ${chalk.white("0")} clear  ${chalk.white("q")} back`,
 		);
 	} else if (state.filterMenuStep === "value" && state.filterMenuKey) {
 		const values = collectFilterValues(state.result.items, state.filterMenuKey);
@@ -297,6 +315,91 @@ export function findMatch(items: CategorizedItem[], query: string): number {
 			item.title.toLowerCase().includes(q) ||
 			item.author.toLowerCase().includes(q),
 	);
+}
+
+/**
+ * Handle a keypress while the filter menu is open. Returns true if the key was
+ * consumed (menu remains open or closed deterministically), false if the key
+ * should fall through to navigation.
+ */
+export function handleFilterKey(
+	state: FilterMenuState,
+	key: string,
+	sourceItems: CategorizedItem[],
+): boolean {
+	const closeMenu = (message = "") => {
+		state.filterMenuStep = null;
+		state.filterMenuKey = null;
+		state.selectedIndex = 0;
+		state.viewStart = 0;
+		state.message = message;
+	};
+
+	if (state.filterMenuStep === "key") {
+		if (key === "q" || key === "\x1B" || key === "f") {
+			state.filterMenuStep = null;
+			state.filterMenuKey = null;
+			state.message = "";
+			return true;
+		}
+		if (key === "0") {
+			state.filterState = [];
+			closeMenu();
+			return true;
+		}
+		if (key === "r" && state.configFilter.length > 0) {
+			const { filter } = relaxFilter(sourceItems, state.configFilter);
+			state.filterState = filter;
+			closeMenu(chalk.dim("reset to config defaults"));
+			return true;
+		}
+		const idx = parseInt(key, 10);
+		if (idx >= 1 && idx <= FILTER_KEY_NAMES.length) {
+			state.filterMenuKey = FILTER_KEY_NAMES[idx - 1];
+			state.filterMenuStep = "value";
+			state.message = "";
+			return true;
+		}
+		return false;
+	}
+
+	if (state.filterMenuStep === "value" && state.filterMenuKey) {
+		const menuKey = state.filterMenuKey;
+		if (key === "q" || key === "\x1B") {
+			state.filterMenuStep = "key";
+			state.filterMenuKey = null;
+			state.message = "";
+			return true;
+		}
+		if (key === "0") {
+			state.filterState = state.filterState.filter((c) => c.key !== menuKey);
+			closeMenu();
+			return true;
+		}
+		const values = collectFilterValues(sourceItems, menuKey);
+		const idx = parseInt(key, 10);
+		if (idx < 1 || idx > Math.min(9, values.length)) return false;
+
+		const value = values[idx - 1].toLowerCase();
+		const existingIdx = state.filterState.findIndex(
+			(c) =>
+				c.key === menuKey &&
+				!c.exclude &&
+				c.values.length === 1 &&
+				c.values[0] === value,
+		);
+		state.filterState =
+			existingIdx >= 0
+				? [
+						...state.filterState.slice(0, existingIdx),
+						...state.filterState.slice(existingIdx + 1),
+					]
+				: [...state.filterState, { key: menuKey, values: [value], exclude: false }];
+		closeMenu();
+		return true;
+	}
+
+	return false;
 }
 
 export interface SearchState {
@@ -395,6 +498,7 @@ export async function interactiveMode(
 	result: StatusResult,
 	sourceItems: CategorizedItem[],
 	config: Config,
+	filterOpts: FilterOptions = { initial: [], config: [], dropped: [] },
 ): Promise<void> {
 	if (result.items.length === 0) {
 		console.log(chalk.green("\n  All clear! Nothing needs your attention.\n"));
@@ -403,15 +507,23 @@ export async function interactiveMode(
 
 	const allActions = listActions(config);
 
+	const initialMessage =
+		filterOpts.dropped.length > 0
+			? chalk.yellow(
+					`default filter relaxed: dropped ${formatClauses(filterOpts.dropped)}`,
+				)
+			: "";
+
 	const state: RenderState = {
 		result,
 		sourceItems,
 		selectedIndex: 0,
-		message: "",
+		message: initialMessage,
 		actionMenu: null,
 		filterMenuStep: null,
 		filterMenuKey: null,
-		filterState: parseFilterFlags(config.filters),
+		filterState: [...filterOpts.initial],
+		configFilter: [...filterOpts.config],
 		viewStart: 0,
 		searchMode: false,
 		searchBuffer: "",
@@ -441,76 +553,7 @@ export async function interactiveMode(
 			}
 
 			if (state.filterMenuStep !== null) {
-				let handled = true;
-
-				if (state.filterMenuStep === "key") {
-					if (key === "q" || key === "\x1B" || key === "f") {
-						state.filterMenuStep = null;
-						state.filterMenuKey = null;
-						state.message = "";
-					} else if (key === "0") {
-						state.filterState = [];
-						state.filterMenuStep = null;
-						state.filterMenuKey = null;
-						state.selectedIndex = 0;
-						state.viewStart = 0;
-						state.message = "";
-					} else {
-						const idx = parseInt(key, 10);
-						if (idx >= 1 && idx <= FILTER_KEY_NAMES.length) {
-							state.filterMenuKey = FILTER_KEY_NAMES[idx - 1];
-							state.filterMenuStep = "value";
-							state.message = "";
-						} else {
-							handled = false;
-						}
-					}
-				} else if (state.filterMenuStep === "value" && state.filterMenuKey) {
-					if (key === "q" || key === "\x1B") {
-						state.filterMenuStep = "key";
-						state.filterMenuKey = null;
-						state.message = "";
-					} else if (key === "0") {
-						state.filterState = state.filterState.filter(
-							(c) => c.key !== state.filterMenuKey,
-						);
-						state.selectedIndex = 0;
-						state.viewStart = 0;
-						state.message = "";
-					} else {
-						const values = collectFilterValues(
-							state.result.items,
-							state.filterMenuKey,
-						);
-						const idx = parseInt(key, 10);
-						if (idx >= 1 && idx <= Math.min(9, values.length)) {
-							const value = values[idx - 1].toLowerCase();
-							const existingIdx = state.filterState.findIndex(
-								(c) =>
-									c.key === state.filterMenuKey &&
-									!c.exclude &&
-									c.values.length === 1 &&
-									c.values[0] === value,
-							);
-							if (existingIdx >= 0) {
-								state.filterState.splice(existingIdx, 1);
-							} else {
-								state.filterState.push({
-									key: state.filterMenuKey,
-									values: [value],
-									exclude: false,
-								});
-							}
-							state.selectedIndex = 0;
-							state.viewStart = 0;
-							state.message = "";
-						} else {
-							handled = false;
-						}
-					}
-				}
-
-				if (handled) {
+				if (handleFilterKey(state, key, state.sourceItems)) {
 					render(state);
 					return;
 				}

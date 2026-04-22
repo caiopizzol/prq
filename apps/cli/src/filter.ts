@@ -140,6 +140,35 @@ export function legacyOptsToFilter(opts: {
 	return clauses;
 }
 
+/**
+ * Relax a filter by dropping clauses from the end (right) until the result
+ * is non-empty. Returns the surviving filter and the clauses that were dropped.
+ *
+ * Rightmost clauses are treated as the most specific refinements (e.g. with
+ * ["type:pr", "label:future"], `label:future` drops first if nothing matches).
+ * If no prefix yields items, returns an empty filter.
+ */
+export function relaxFilter(
+	items: CategorizedItem[],
+	filter: Filter,
+): { filter: Filter; dropped: FilterClause[] } {
+	for (let i = filter.length; i > 0; i--) {
+		if (applyFilter(items, filter.slice(0, i)).length > 0) {
+			return { filter: filter.slice(0, i), dropped: filter.slice(i) };
+		}
+	}
+	return { filter: [], dropped: [...filter] };
+}
+
+/** Format clauses as a human-readable comma-separated list, preserving the `!` exclude prefix. */
+export function formatClauses(clauses: FilterClause[]): string {
+	return clauses
+		.map(
+			(c) => `${c.exclude ? "!" : ""}${c.key}:${c.values.join(",")}`,
+		)
+		.join(", ");
+}
+
 /** Collect all unique values for a filter key across items. */
 export function collectFilterValues(
 	items: CategorizedItem[],

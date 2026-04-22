@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
+import { parseFilterFlags } from "./filter.js";
 import {
+	type FilterMenuState,
 	findMatch,
+	handleFilterKey,
 	handleSearchKey,
 	recomputeState,
 	type SearchState,
@@ -311,5 +314,144 @@ describe("recomputeState", () => {
 		// Target item not in list — selectedIndex should clamp
 		recomputeState(state, { repo: "org/gone", number: 999 });
 		expect(state.selectedIndex).toBeLessThan(state.result.items.length);
+	});
+});
+
+describe("handleFilterKey", () => {
+	function makeFilterState(
+		overrides: Partial<FilterMenuState> = {},
+	): FilterMenuState {
+		return {
+			filterMenuStep: "key",
+			filterMenuKey: null,
+			filterState: [],
+			configFilter: [],
+			selectedIndex: 3,
+			viewStart: 2,
+			message: "",
+			...overrides,
+		};
+	}
+
+	const filterItems = [
+		makeItem({ type: "pr", labels: ["future"], author: "alice" }),
+		makeItem({ type: "pr", labels: [], author: "bob" }),
+		makeItem({ type: "issue", labels: [], author: "alice" }),
+	];
+
+	test("number key in key step advances to value step", () => {
+		const state = makeFilterState();
+		// "author" is index 0 in sorted FILTER_KEY_NAMES (author, category, draft, label, repo, source, type)
+		expect(handleFilterKey(state, "1", filterItems)).toBe(true);
+		expect(state.filterMenuStep).toBe("value");
+		expect(state.filterMenuKey).toBe("author");
+	});
+
+	test("'0' in key step clears filter and closes menu", () => {
+		const state = makeFilterState({
+			filterState: parseFilterFlags(["type:pr"]),
+		});
+		expect(handleFilterKey(state, "0", filterItems)).toBe(true);
+		expect(state.filterState).toEqual([]);
+		expect(state.filterMenuStep).toBeNull();
+		expect(state.selectedIndex).toBe(0);
+	});
+
+	test("'r' resets to relaxed config filter and closes menu", () => {
+		const state = makeFilterState({
+			filterState: parseFilterFlags(["author:bob"]),
+			configFilter: parseFilterFlags(["type:pr", "label:future"]),
+		});
+		expect(handleFilterKey(state, "r", filterItems)).toBe(true);
+		expect(state.filterState.map((c) => c.key)).toEqual(["type", "label"]);
+		expect(state.filterMenuStep).toBeNull();
+	});
+
+	test("'r' re-relaxes when config clauses no longer match current items", () => {
+		const state = makeFilterState({
+			configFilter: parseFilterFlags(["type:pr", "label:future"]),
+		});
+		// Items with no future-labeled PRs — label:future should be dropped
+		const items = [makeItem({ type: "pr", labels: [], author: "alice" })];
+		expect(handleFilterKey(state, "r", items)).toBe(true);
+		expect(state.filterState.map((c) => c.key)).toEqual(["type"]);
+	});
+
+	test("'r' is ignored when configFilter is empty", () => {
+		const state = makeFilterState({ configFilter: [] });
+		expect(handleFilterKey(state, "r", filterItems)).toBe(false);
+		expect(state.filterMenuStep).toBe("key");
+	});
+
+	test("'q' in key step closes menu without changing filter", () => {
+		const state = makeFilterState({
+			filterState: parseFilterFlags(["type:pr"]),
+		});
+		expect(handleFilterKey(state, "q", filterItems)).toBe(true);
+		expect(state.filterMenuStep).toBeNull();
+		expect(state.filterState.map((c) => c.key)).toEqual(["type"]);
+	});
+
+	test("unhandled key in key step returns false for fallthrough", () => {
+		const state = makeFilterState();
+		expect(handleFilterKey(state, "\x1B[A", filterItems)).toBe(false);
+		expect(state.filterMenuStep).toBe("key");
+	});
+
+	test("value selection adds clause and closes menu", () => {
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "type",
+		});
+		// values for "type" from items: ["issue", "pr"] (sorted)
+		expect(handleFilterKey(state, "2", filterItems)).toBe(true);
+		expect(state.filterState).toEqual([
+			{ key: "type", values: ["pr"], exclude: false },
+		]);
+		expect(state.filterMenuStep).toBeNull();
+	});
+
+	test("value selection does not mutate existing filterState reference", () => {
+		const original = parseFilterFlags(["author:bob"]);
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "type",
+			filterState: original,
+		});
+		handleFilterKey(state, "2", filterItems);
+		// Original array must be untouched (catches the aliasing bug class).
+		expect(original.length).toBe(1);
+		expect(state.filterState).not.toBe(original);
+	});
+
+	test("selecting same value twice toggles the clause off", () => {
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "type",
+			filterState: [{ key: "type", values: ["pr"], exclude: false }],
+		});
+		expect(handleFilterKey(state, "2", filterItems)).toBe(true);
+		expect(state.filterState).toEqual([]);
+	});
+
+	test("'0' in value step removes that key's clauses and closes menu", () => {
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "type",
+			filterState: parseFilterFlags(["type:pr", "author:alice"]),
+		});
+		expect(handleFilterKey(state, "0", filterItems)).toBe(true);
+		expect(state.filterState.map((c) => c.key)).toEqual(["author"]);
+		expect(state.filterMenuStep).toBeNull();
+	});
+
+	test("'q' in value step returns to key step", () => {
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "type",
+		});
+		expect(handleFilterKey(state, "q", filterItems)).toBe(true);
+		expect(state.filterMenuStep).toBe("key");
+		expect(state.filterMenuKey).toBeNull();
 	});
 });
