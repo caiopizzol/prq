@@ -127,9 +127,26 @@ function countLines(
 }
 
 function render(state: RenderState) {
-	const { selectedIndex, message, actionMenu } = state;
+	const { message, actionMenu } = state;
 	const items = filteredItems(state);
 	const termHeight = process.stdout.rows || 24;
+
+	// Clamp cursor to the visible list. Handlers like recomputeState index into
+	// the unfiltered result.items, which can exceed filteredItems after a filter
+	// change or in-progress toggle.
+	if (items.length === 0) {
+		state.selectedIndex = 0;
+		state.viewStart = 0;
+	} else if (state.selectedIndex >= items.length) {
+		state.selectedIndex = items.length - 1;
+	}
+	if (state.viewStart > state.selectedIndex) {
+		state.viewStart = state.selectedIndex;
+	}
+	if (state.viewStart >= items.length) {
+		state.viewStart = 0;
+	}
+	const { selectedIndex } = state;
 
 	process.stdout.write("\x1B[2J\x1B[H");
 
