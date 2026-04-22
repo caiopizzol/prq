@@ -2,8 +2,10 @@ name: Deploy Web
 
 on:
   workflow_dispatch:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+    branches: [main]
   push:
     branches: [main]
     paths:
@@ -16,6 +18,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     defaults:
       run:
         working-directory: apps/web
