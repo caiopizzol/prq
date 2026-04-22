@@ -1,6 +1,6 @@
 {
 	"name": "prq-cli",
-	"version": "0.25.0",
+	"version": "0.26.0",
 	"description": "See what needs your attention — PRs, issues, tickets. One command.",
 	"type": "module",
 	"bin": {
