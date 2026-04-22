@@ -72,7 +72,7 @@ Interactive mode is the default when running in a terminal. Navigate your queue 
 | / | Search by number, title, or author |
 | q | Quit |
 
-Press **f** to open the filter menu. Pick a dimension (label, author, type, etc.), then toggle values. Active filters show a `*` indicator in the footer. Press **0** to clear filters.
+Press **f** to open the filter menu. Pick a dimension (label, author, type, etc.), then toggle values. Active filters show a `*` indicator in the footer. Press **0** to clear filters, or **r** to reset to your config defaults.
 
 Press **a** to open the actions menu, which lists all actions (built-in and custom from your config). Press **1-9** to run an action, or **q** to dismiss.
 
@@ -148,7 +148,9 @@ Set default filters in your config so you don't repeat them every time:
 }
 ```
 
-CLI `--filter` flags override config defaults entirely (not merge). The interactive TUI starts with config filters active — clear them with **f** → **0**.
+CLI `--filter` flags override config defaults entirely (not merge). The interactive TUI starts with config filters active — clear them with **f** → **0**, or reset with **f** → **r**.
+
+If your config filters would hide everything (e.g. `label:future` but no items currently carry that label), prq drops the rightmost clauses until results appear and tells you which ones it dropped.
 
 ## Linear
 
