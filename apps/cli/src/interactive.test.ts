@@ -454,4 +454,95 @@ describe("handleFilterKey", () => {
 		expect(state.filterMenuStep).toBe("key");
 		expect(state.filterMenuKey).toBeNull();
 	});
+
+	// Corner cases: any key that isn't a valid menu option must fall through
+	// to navigation rather than crashing. parseInt returns NaN for arrow
+	// keys, letters, and empty strings — NaN silently fails arithmetic
+	// comparisons, so explicit guards are required.
+
+	test("arrow-up key in value step returns false without crashing", () => {
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "label",
+		});
+		expect(() => handleFilterKey(state, "\x1B[A", filterItems)).not.toThrow();
+		expect(handleFilterKey(state, "\x1B[A", filterItems)).toBe(false);
+		expect(state.filterMenuStep).toBe("value");
+		expect(state.filterState).toEqual([]);
+	});
+
+	test("arrow-down key in value step returns false", () => {
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "label",
+		});
+		expect(handleFilterKey(state, "\x1B[B", filterItems)).toBe(false);
+	});
+
+	test("page-left/page-right keys in value step return false", () => {
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "label",
+		});
+		expect(handleFilterKey(state, "\x1B[D", filterItems)).toBe(false);
+		expect(handleFilterKey(state, "\x1B[C", filterItems)).toBe(false);
+	});
+
+	test("letter key in value step returns false", () => {
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "label",
+		});
+		expect(handleFilterKey(state, "x", filterItems)).toBe(false);
+		expect(state.filterState).toEqual([]);
+	});
+
+	test("number key beyond available values returns false", () => {
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "type",
+		});
+		// filterItems has 2 type values (issue, pr); key "5" is out of range
+		expect(handleFilterKey(state, "5", filterItems)).toBe(false);
+		expect(state.filterState).toEqual([]);
+	});
+
+	test("empty key string in value step returns false", () => {
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "label",
+		});
+		expect(handleFilterKey(state, "", filterItems)).toBe(false);
+	});
+
+	test("arrow keys in key step return false for fallthrough", () => {
+		const state = makeFilterState();
+		expect(handleFilterKey(state, "\x1B[B", filterItems)).toBe(false);
+		expect(handleFilterKey(state, "\x1B[C", filterItems)).toBe(false);
+		expect(handleFilterKey(state, "\x1B[D", filterItems)).toBe(false);
+		expect(state.filterMenuStep).toBe("key");
+	});
+
+	test("letter key in key step returns false", () => {
+		const state = makeFilterState();
+		expect(handleFilterKey(state, "x", filterItems)).toBe(false);
+		expect(state.filterMenuStep).toBe("key");
+	});
+
+	test("number key beyond FILTER_KEY_NAMES returns false", () => {
+		const state = makeFilterState();
+		// 9 is beyond the 7 filter keys (author, category, draft, label, repo, source, type)
+		expect(handleFilterKey(state, "9", filterItems)).toBe(false);
+		expect(state.filterMenuStep).toBe("key");
+	});
+
+	test("empty value list + number key returns false without crashing", () => {
+		const state = makeFilterState({
+			filterMenuStep: "value",
+			filterMenuKey: "label",
+		});
+		const itemsWithNoLabels = [makeItem({ labels: [] })];
+		expect(() => handleFilterKey(state, "1", itemsWithNoLabels)).not.toThrow();
+		expect(handleFilterKey(state, "1", itemsWithNoLabels)).toBe(false);
+	});
 });

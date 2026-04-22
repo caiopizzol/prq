@@ -397,7 +397,9 @@ export function handleFilterKey(
 		}
 		const values = collectFilterValues(sourceItems, menuKey);
 		const idx = parseInt(key, 10);
-		if (idx < 1 || idx > Math.min(9, values.length)) return false;
+		// NaN (arrow keys, letters) fails every comparison silently, so guard explicitly.
+		if (!Number.isInteger(idx) || idx < 1 || idx > Math.min(9, values.length))
+			return false;
 
 		const value = values[idx - 1].toLowerCase();
 		const existingIdx = state.filterState.findIndex(
