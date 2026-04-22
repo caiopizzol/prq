@@ -168,8 +168,10 @@ function render(state: RenderState) {
 		end++;
 	}
 
-	// If selected item is not in [viewStart, end), shift viewStart forward
-	if (selectedIndex >= end) {
+	// If selected item is not in [viewStart, end), shift viewStart forward.
+	// Skip when empty — the selectedIndex >= end comparison is trivially true
+	// for 0 >= 0 and would push `end` past the end of an empty items array.
+	if (items.length > 0 && selectedIndex >= end) {
 		state.viewStart = selectedIndex;
 		end = selectedIndex + 1;
 		while (state.viewStart > 0) {
