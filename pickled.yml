@@ -1,0 +1,180 @@
+# yaml-language-server: $schema=https://pickled.dev/schema/pickled.schema.json
+
+schemaVersion: 2
+
+product:
+  name: prq
+  description: Developer attention CLI for GitHub PRs, GitHub issues, and Linear tickets.
+
+sources:
+  cli_readme: { path: ./apps/cli/README.md }
+
+agents:
+  quick:
+    provider: claude-code
+    model: claude-haiku-4-5
+    maxTurns: 5
+  builder:
+    provider: claude-code
+    model: claude-haiku-4-5
+    maxTurns: 30
+
+contexts:
+  given_cli_readme: { mode: inject, source: cli_readme }
+
+facts:
+  install_and_auth:
+    statement: Installs prq from npm and requires an authenticated GitHub CLI.
+    match:
+      allOf: ["npm install -g prq-cli", "GitHub CLI", "gh"]
+      anyOf: ["authenticated", "gh to be authenticated"]
+  linear_optional:
+    statement: Says Linear support is optional through LINEAR_API_KEY.
+    match:
+      allOf: ["LINEAR_API_KEY", "Optional"]
+  status_modes:
+    statement: Shows the queue in interactive, plain text, and JSON modes.
+    match:
+      allOf: ["prq", "prq --no-interactive", "prq status --json"]
+  action_commands:
+    statement: Names the built-in PR action commands.
+    match:
+      allOf: ["prq review", "prq open", "prq nudge"]
+  categories:
+    statement: Names the main work categories prq reports.
+    match:
+      allOf: ["Needs Re-review", "Requested", "Stale", "Your PRs Waiting"]
+  in_progress:
+    statement: Explains that started PRs appear in an In Progress group.
+    match:
+      allOf: ["In Progress"]
+      anyOf: ["mark as started", "Start/Stop"]
+  filters:
+    statement: Shows filter syntax and the supported filter keys.
+    match:
+      allOf: ["--filter", "label:priority", "type:pr", "source:linear"]
+  config_order:
+    statement: Explains global config, project config, and CLI flag precedence.
+    match:
+      allOf: ["~/.config/prq/config.json", ".prqrc.json", "CLI flags"]
+  custom_actions:
+    statement: Explains custom action templates in .prqrc.json.
+    match:
+      allOf: [".prqrc.json", "actions", "{url}", "{number}"]
+  actions_takeover:
+    statement: Says actions can run interactive tools because they take over the terminal.
+    match:
+      allOf: ["full terminal control"]
+      anyOf: ["suspends its TUI", "interactive tools"]
+  skill_install:
+    statement: Shows how to install the Claude Code skill.
+    match:
+      allOf: ["prq skill", "prq skill --global"]
+  skill_action_reuse:
+    statement: Says the Claude skill reads .prqrc.json actions and otherwise opens the browser.
+    match:
+      allOf: [".prqrc.json actions", "falls back to opening the browser"]
+
+misstatements:
+  wrong_package:
+    statement: Installs the wrong npm package name.
+    match:
+      anyOf: ["npm install -g prq@latest", "bun add -g prq"]
+  linear_required:
+    statement: Claims Linear is required for prq to work.
+    match:
+      anyOf: ["Linear is required", "requires Linear"]
+  config_replaces_cli:
+    statement: Claims config overrides CLI flags.
+    match:
+      anyOf: ["config overrides CLI flags", "CLI flags have the lowest priority"]
+  only_browser_actions:
+    statement: Claims custom actions can only open browser URLs.
+    match:
+      anyOf: ["only open browser", "browser-only actions"]
+
+questions:
+  - id: first_run
+    question: How do I install prq and run my first queue check?
+    agents: [quick]
+    contexts: [given_cli_readme]
+    expects: [install_and_auth, linear_optional, status_modes, action_commands]
+    rejects: [wrong_package, linear_required]
+    examples:
+      pass:
+        - "Install with `npm install -g prq-cli`. prq needs the GitHub CLI (`gh`) to be authenticated. LINEAR_API_KEY is optional for Linear. Run `prq`, `prq --no-interactive`, or `prq status --json`, then act with `prq review`, `prq open`, or `prq nudge`."
+      fail:
+        - "Install with `npm install -g prq@latest`. Linear is required before the command can show anything."
+
+  - id: queue_categories
+    question: What do the main prq queue categories mean?
+    agents: [quick]
+    contexts: [given_cli_readme]
+    expects: [categories, in_progress]
+    examples:
+      pass:
+        - "prq groups work as Needs Re-review, Requested, Stale, and Your PRs Waiting. PRs you mark as started show in an In Progress group."
+      fail:
+        - "prq only sorts work by repository name and has no in-progress state."
+
+  - id: filters_and_config
+    question: How do I configure default repos, filters, and stale-day behavior?
+    agents: [quick]
+    contexts: [given_cli_readme]
+    expects: [filters, config_order]
+    rejects: [config_replaces_cli]
+    examples:
+      pass:
+        - "Use filters like `--filter label:priority`, `--filter type:pr`, and `--filter source:linear`. Config loads from `~/.config/prq/config.json`, then `.prqrc.json`, then CLI flags."
+      fail:
+        - "Put filters in config because config overrides CLI flags and CLI flags have the lowest priority."
+
+  - id: custom_actions
+    question: How do I make prq dispatch a review to Claude Code or another command?
+    agents: [quick]
+    contexts: [given_cli_readme]
+    expects: [custom_actions, actions_takeover]
+    rejects: [only_browser_actions]
+    examples:
+      pass:
+        - "Add actions in `.prqrc.json`, such as `review: claude '/review {url}'`. Templates can use `{url}` and `{number}`. Actions run with full terminal control, so interactive tools can take over."
+      fail:
+        - "Custom actions only open browser URLs and cannot run shell commands."
+
+  - id: claude_skill
+    question: How do I install and use the prq Claude Code skill?
+    agents: [quick]
+    contexts: [given_cli_readme]
+    expects: [skill_install, skill_action_reuse]
+    examples:
+      pass:
+        - "Run `prq skill` in a project or `prq skill --global`. The skill reads `.prqrc.json actions`; if no review action is configured it falls back to opening the browser."
+      fail:
+        - "There is no prq skill command. Claude Code cannot reuse `.prqrc.json` actions."
+
+builds:
+  - id: create_project_prq_config
+    goal: >-
+      Create a project-level `.prqrc.json` and a `scripts/prq-review.sh`
+      helper. The config should watch `caiopizzol/prq` and
+      `caiopizzol/moor`, set staleDays to 5, filter out drafts and
+      wontfix-labeled work, define a review action that runs the helper with
+      `{url}`, and define a checkout action using `gh pr checkout {number}
+      --repo {owner}/{repo}`. The helper should accept the PR URL as its first
+      argument and run Claude Code with `/review <url>`.
+    agents: [builder]
+    contexts: [given_cli_readme]
+    trials: 2
+    workspace:
+      path: ./fixtures/pickled/prq-config
+    verifier:
+      failToPass:
+        - { name: prq config, run: ./tests/verify-prq-config.sh }
+      passToPass:
+        - { name: keeps fixture instructions, run: test -f README.md }
+    referenceSolution:
+      patch: ./fixtures/pickled/prq-config.solution.patch
+
+thresholds:
+  questions: 80
+  builds: 80
