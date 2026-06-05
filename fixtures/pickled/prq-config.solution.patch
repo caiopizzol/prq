@@ -1,0 +1,32 @@
+diff --git a/.prqrc.json b/.prqrc.json
+new file mode 100644
+index 0000000..8afcd43
+--- /dev/null
++++ b/.prqrc.json
+@@ -0,0 +1,9 @@
++{
++  "repos": ["caiopizzol/prq", "caiopizzol/moor"],
++  "staleDays": 5,
++  "filters": ["!draft:true", "!label:wontfix"],
++  "actions": {
++    "review": "./scripts/prq-review.sh {url}",
++    "checkout": "gh pr checkout {number} --repo {owner}/{repo}"
++  }
++}
+diff --git a/scripts/prq-review.sh b/scripts/prq-review.sh
+new file mode 100755
+index 0000000..f7b8931
+--- /dev/null
++++ b/scripts/prq-review.sh
+@@ -0,0 +1,11 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++if [ $# -lt 1 ]; then
++  echo "PR URL is required" >&2
++  exit 1
++fi
++
++url="$1"
++
++claude "/review ${url}"
